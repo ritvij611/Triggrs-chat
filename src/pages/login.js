@@ -6,6 +6,7 @@ import Country from '@/components/general/country';
 import CompanyLogo from '@/components/general/companylogo';
 import { Combobox } from '@/components/ui/combobox';
 import { useLogin } from '@/modules/authentication/hooks/useLogin';
+import { toast } from 'sonner';
 
 export async function getServerSideProps(context) {
   // Fetch data from external API
@@ -43,6 +44,7 @@ const Login = (props) => {
   const [showPass, setShowPass] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const {handleLogin, isLoginLoading, loginError, loginResponse} = useLogin();
+
   
   // Remove this if not using it - less state is better
   // const [openForgot, setOpenForgot] = useState(false);
@@ -72,9 +74,13 @@ const Login = (props) => {
   }, [loginResponse, router]);
 
   useEffect(() => {
-    console.log({isLoginLoading, loginError, loginResponse});
+    if(isLoginLoading == false && (loginResponse || loginError)) {
+      loginError
+      ? toast.error(loginError)
+      : toast.success(loginResponse?.message);
+    }
+    // console.log({isLoginLoading, loginError, loginResponse});
   }, [isLoginLoading, loginError, loginResponse]);
-
 
   // Only use for hydration check
   useEffect(() => {

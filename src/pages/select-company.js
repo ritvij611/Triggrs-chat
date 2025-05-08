@@ -2,11 +2,54 @@ import { useEffect, useState, useRef } from 'react';
 import { Search, Plus, Filter, X, ArrowRight } from 'lucide-react';
 import Link from "next/link";
 import Image from "next/image";
+import jwt from 'jsonwebtoken';
 import { toast } from 'sonner';
 import { useRouter } from "next/router";
 import GeneralModal from '@/components/general/GeneralModal';
+import { parseCookie } from 'next/dist/compiled/@edge-runtime/cookies';
 
-export default function SelectCompany() {
+export async function getServerSideProps(context) {
+  // Fetch data from external API
+  try {
+    const cookie = context.req.headers.cookie;
+    if (cookie) {
+      const token = parseCookie(cookie).get('twchat') ? parseCookie(cookie).get('twchat') : '';
+      if (token) {
+        const decoded = jwt.verify(token, process.env.SESS_SECRET_TOKEN);
+        console.log('decoded',decoded);
+        return { props: { status: 200, ...decoded } }
+      } else {
+        return {
+          redirect: {
+            permanent: false,
+            destination: "/login",
+          },
+          props: { status: 200 },
+        }
+      }
+    } else {
+      return {
+        redirect: {
+          permanent: false,
+          destination: "/login",
+        },
+        props: { status: 200 },
+      }
+    }
+  } catch (e) {
+    console.log('error data token', e);
+    return {
+      redirect: {
+        permanent: false,
+        destination: "/login",
+      },
+      props: { status: 200 },
+    }
+  }
+}
+
+export default function SelectCompany(props) {
+  console.log('accessing props', props);
   const router = useRouter();
   const [showCompanyList, setShowCompanyList] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState(null);
@@ -106,67 +149,67 @@ export default function SelectCompany() {
     }
   };
 
-  const findCompany = async(company) => {
-    const response = await fetch(`/api/find-company/`,{
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        "userID": `${user.id}`,
-        company
-      })
-    });
+  // const findCompany = async(company) => {
+  //   const response = await fetch(`/api/find-company/`,{
+  //     method: 'POST',
+  //     headers: {
+  //       'Content-Type': 'application/json'
+  //     },
+  //     body: JSON.stringify({
+  //       "userID": `${user.id}`,
+  //       company
+  //     })
+  //   });
     
-    const data = await response.json();
-    if(!response.ok){
-      setLoading(false);
-      if(response.status == 404){
-        toast({
-          title: "Error",
-          description: "Please get subscription to proceed",
-          variant: "destructive"
-        });
-        router.replace(`/select-plan`);
-      }
-      else {
-        toast({
-          title: "Error",
-          description: "Internal Server Error",
-          variant: "destructive"
-        });
-      }
-      return;
-    }
+  //   const data = await response.json();
+  //   if(!response.ok){
+  //     setLoading(false);
+  //     if(response.status == 404){
+  //       toast({
+  //         title: "Error",
+  //         description: "Please get subscription to proceed",
+  //         variant: "destructive"
+  //       });
+  //       router.replace(`/select-plan`);
+  //     }
+  //     else {
+  //       toast({
+  //         title: "Error",
+  //         description: "Internal Server Error",
+  //         variant: "destructive"
+  //       });
+  //     }
+  //     return;
+  //   }
     
-    const token = data.token;
-    await startCompanySession(token); 
-    if(data.active){
-      router.replace("/dashboard/main");
-    } else {
-      toast({
-        title: "Error",
-        description: "Please get subscription to proceed",
-        variant: "destructive"
-      });
-      router.replace(`/select-plan`);
-    }
+  //   const token = data.token;
+  //   await startCompanySession(token); 
+  //   if(data.active){
+  //     router.replace("/dashboard/main");
+  //   } else {
+  //     toast({
+  //       title: "Error",
+  //       description: "Please get subscription to proceed",
+  //       variant: "destructive"
+  //     });
+  //     router.replace(`/select-plan`);
+  //   }
 
     
-  }
+  // }
 
   useEffect(()=>{
     getAllCompanies();
   },[]);
 
-  useEffect(() => {
-    if (!user) return;
-    if (!user.authorised) {
-      router.replace('/login');
-    }
-    getUserCompanies();
+  // useEffect(() => {
+  //   if (!user) return;
+  //   if (!user.authorised) {
+  //     router.replace('/login');
+  //   }
+  //   getUserCompanies();
     
-  }, [user]);
+  // }, [user]);
 
   // Focus input when add company button is clicked
   useEffect(() => {
@@ -217,7 +260,7 @@ export default function SelectCompany() {
   const handleNextClick = async() => {
     if (selectedCompany) {
       setLoading(true);
-      await findCompany(selectedCompany);
+      // await findCompany(selectedCompany);
       setLoading(false);
     } else {
       toast({
