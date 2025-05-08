@@ -71,7 +71,7 @@ export default function SelectCompany(props) {
   const [nameExists, setNameExists] = useState(false);
   
   const getAllCompanies = async() => {
-    const response = await fetch('/api/get-all-companies/',{
+    const response = await fetch('/api/get-all-companies?fields=companyName',{
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'

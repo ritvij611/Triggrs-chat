@@ -4,10 +4,12 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
+  const queryParams = req.query;
+  const fields = queryParams.fields;
   const backendUrl = 'https://dev-wa-api.triggrsweb.com/companies';
   //console.log(req.body);
   try {
-    const response = await axios.get(backendUrl, {
+    const response = await axios.get(`${backendUrl}/fields=${fields}`, {
       headers: {
         'Content-Type': 'application/json',
       },
