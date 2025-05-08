@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   const backendUrl = 'https://dev-wa-api.triggrsweb.com/companies';
   //console.log(req.body);
   try {
-    const response = await axios.get(`${backendUrl}/fields=${fields}`, {
+    const response = await axios.get(`${backendUrl}?fields=${fields}`, {
       headers: {
         'Content-Type': 'application/json',
       },
