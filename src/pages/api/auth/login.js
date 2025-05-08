@@ -25,17 +25,19 @@ export default async function handler(req, res) {
       throw new Error('No token received from backend');
     }
 
-    const token = jwt.sign(
-      {
-        user: response.user,
-        exp: Math.floor(Date.now() / 1000) + 24 * 60 * 60,
-      },
-      process.env.SESS_SECRET_TOKEN
-    );
+  
+
+    // const token = jwt.sign(
+    //   {
+    //     user: response.user,
+    //     exp: Math.floor(Date.now() / 1000) + 24 * 60 * 60,
+    //   },
+    //   process.env.SESS_SECRET_TOKEN
+    // );
 
     res.setHeader(
       'Set-Cookie',
-      `twchat=${token}; Path=/; HttpOnly; SameSite=Lax; Secure`
+      `twchat=${response.token}; Path=/; HttpOnly; SameSite=Lax; Secure`
     );
 
     res.status(responseData.status).json({message: response?.message});
