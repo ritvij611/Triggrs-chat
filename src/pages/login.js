@@ -63,13 +63,13 @@ const Login = (props) => {
       "countryCode": parseInt(country.code),
       "password": password
     });
-
-    // Use router.push instead of replace and wait for it to complete
-    // router.push('/select-company').then(() => {
-    //   setTimeout(() => setShowSnackBar(false), 3000);
-    // });
   };
 
+  useEffect(() => {
+    if (loginResponse?.message === 'User logged in successfully') {
+      router.push('/select-company');
+    }
+  }, [loginResponse, router]);
 
   useEffect(() => {
     console.log({isLoginLoading, loginError, loginResponse});
