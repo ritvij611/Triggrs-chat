@@ -4,7 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import Footer from "@/components/general/footer";
 
-export default function Home() {
+export default function HomePage() {
   const [planChanged, setPlanChanged] = useState('monthly');
 
 const planChange = (e) => {
@@ -12,7 +12,7 @@ const planChange = (e) => {
   setPlanChanged(e.target.value);
 }
   
-return( 
+return (
   <div className="bg-white font-outfit">
  <Header/>
  {/* <MobileHeader/> */}

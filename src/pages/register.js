@@ -1,5 +1,4 @@
-import {useEffect, useRef, useState } from 'react';
-import SnackBar from '@/components/general/SnackBar';
+import { useRef, useState } from 'react';
 import Country from '@/components/general/countryWithCode';
 import Image from 'next/image'
 import Link from "next/link";
