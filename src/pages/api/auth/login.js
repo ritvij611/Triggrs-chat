@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   const environment = EnvironmentFactory.getEnvironment(process.env.STAGE);
   // console.log(apiUrl);
   try {
-    const response = await axios({
+    const responseData = await axios({
       method: 'POST',
       url: `${environment?.config?.wa?.apiUrl}/auth/login/password`,
       data: req.body,
@@ -19,13 +19,15 @@ export default async function handler(req, res) {
       },
     });
 
-    if (!response.data.token) {
+    const response = responseData.data;
+
+    if (!response.token) {
       throw new Error('No token received from backend');
     }
 
     const token = jwt.sign(
       {
-        user: response.data.user,
+        user: response.user,
         exp: Math.floor(Date.now() / 1000) + 24 * 60 * 60,
       },
       process.env.SESS_SECRET_TOKEN
@@ -36,15 +38,15 @@ export default async function handler(req, res) {
       `twchat=${token}; Path=/; HttpOnly; SameSite=Lax; Secure`
     );
 
-    res.status(200).json({
-      user: response.data.user,
-      token: token,
-    });
-  } catch (error) {
-    console.error('Error fetching data from backend:', error);
-    res.status(error.response?.status || 500).json({
-      error: error.message,
-      details: error.response?.data || null,
-    });
-  }
+    res.status(responseData.status).json({message: response?.message});
+  } catch(e){
+    console.log('Error while create visa', e);
+    if(e.response && e.response.data && typeof e.response.data == 'object'){
+        res.status(e.status).json(e.response.data);
+    }else if(e.response && e.response.data && typeof e.response.data == 'string'){
+        res.status(e.status).json({message: e.response.data});
+    }else{
+        res.status(e.status).json({message: 'Something went wrong'});
+    }
+}
 }

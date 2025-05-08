@@ -1,10 +1,11 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from "next/link";
 import { useRouter } from 'next/router';
 import { parseCookie } from 'next/dist/compiled/@edge-runtime/cookies';
 import Country from '@/components/general/country';
 import CompanyLogo from '@/components/general/companylogo';
 import { Combobox } from '@/components/ui/combobox';
+import { useLogin } from '@/modules/authentication/hooks/useLogin';
 
 export async function getServerSideProps(context) {
   // Fetch data from external API
@@ -18,9 +19,9 @@ export async function getServerSideProps(context) {
         return {
           redirect: {
             permanent: false,
-            destination: "/select-company",
+            destination: "/dashboard",
           },
-          props: { status: 401 },
+          props: { status: 200 },
         }
       }
     } else {
@@ -33,6 +34,7 @@ export async function getServerSideProps(context) {
 }
 
 const Login = (props) => {
+  const [isHydrated, setIsHydrated] = useState(false);
   const router = useRouter();
   const whatsappRef = useRef();
   const passwordRef = useRef();
@@ -40,9 +42,7 @@ const Login = (props) => {
   const [country, setCountry] = useState({country: 'India', code: 91});
   const [showPass, setShowPass] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [showSnackBar, setShowSnackBar] = useState(false);
-  const [snackBarContent, setSnackBarContent] = useState('Default Content');
-  const [passwordComp, setPasswordComp] = useState(true);
+  const {handleLogin, isLoginLoading, loginError, loginResponse} = useLogin();
   
   // Remove this if not using it - less state is better
   // const [openForgot, setOpenForgot] = useState(false);
@@ -57,44 +57,33 @@ const Login = (props) => {
       return;
     }
 
-    setIsLoading(true);
-    try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          "phoneNumber": parseInt(whatsapp),
-          "country": country.country,
-          "countryCode": parseInt(country.code),
-          "password": password
-        })
-      });  
-      
-      const data = await response.json();
-      if(!response.ok){
-        setErrRef(data?.message || 'An error occurred. Please try again.');
-        setIsLoading(false); // Removed timeout
-        return;
-      }
+    handleLogin({
+      "phoneNumber": parseInt(whatsapp),
+      "country": country.country,
+      "countryCode": parseInt(country.code),
+      "password": password
+    });
 
-      setSnackBarContent('Login Successfully Done');
-      setShowSnackBar(true);
-      e.target.reset();
-      setErrRef('');
-      setIsLoading(false); // Removed timeout
-      
-      // Use router.push instead of replace and wait for it to complete
-      router.push('/select-company').then(() => {
-        setTimeout(() => setShowSnackBar(false), 3000);
-      });
-    } catch (error) {
-      console.error('Login error:', error);
-      setErrRef('Something went wrong. Please try again later.');
-      setIsLoading(false); // Removed timeout
-    } 
+    // Use router.push instead of replace and wait for it to complete
+    // router.push('/select-company').then(() => {
+    //   setTimeout(() => setShowSnackBar(false), 3000);
+    // });
   };
+
+
+  useEffect(() => {
+    console.log({isLoginLoading, loginError, loginResponse});
+  }, [isLoginLoading, loginError, loginResponse]);
+
+
+  // Only use for hydration check
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  if (typeof window == 'undefined') return;
+
+  if(!isHydrated) return;
 
   return (
     <>
@@ -141,8 +130,9 @@ const Login = (props) => {
                             </div>
                             <div className='flex flex-col gap-5'>
                                 {
-                                    isLoading ? <button type="button" className="flex w-full items-center justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold uppercase leading-6 text-white shadow-sm "><span className='w-3.5 h-3.5 mr-3 animate-spin rounded-full border-2 border-white border-l-2 border-l-transparent'></span><span>Loading...</span></button>
-                                        : <button type="submit" className="flex w-full  justify-center rounded-md bg-gradient-to-br to-emerald-500  from-teal-600 px-3 py-2 text-sm font-semibold uppercase leading-6 text-white shadow-sm ">Login</button>
+                                    isLoginLoading 
+                                    ? <button type="button" className="flex w-full items-center justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold uppercase leading-6 text-white shadow-sm "><span className='w-3 h-3 mr-1.5 animate-spin rounded-full border-2 border-white border-l-2 border-l-transparent'></span><span>Loading...</span></button>
+                                    : <button type="submit" className="flex w-full  justify-center rounded-md bg-gradient-to-br to-emerald-500  from-teal-600 px-3 py-2 text-sm font-semibold uppercase leading-6 text-white shadow-sm ">Login</button>
                                 }
                             </div>
                         </form>
@@ -150,11 +140,7 @@ const Login = (props) => {
                 </div>
             </div>
        <div className='bg-white flex flex-col gap-5 shadow-t-sm shadow-b-gray-200 rounded-b-xl px-8 pb-4'>
-       {/* {
-       passwordComp
-        ? <button onClick={pushToOtpComp} type="button" className="flex w-full  justify-center rounded-md bg-gradient-to-br to-gray-100 from-gray-200 px-3 py-2 text-sm font-semibold uppercase leading-6 text-slate-800 shadow-sm ">Login With OTP</button>
-        : <button onClick={pushPasswordComp} type="button" className="flex w-full  justify-center rounded-md bg-gradient-to-br to-gray-100 from-gray-200 px-3 py-2 text-sm font-semibold uppercase leading-6 text-slate-800 shadow-sm">Login With Password</button>
-        } */}
+
         <p className="text-center text-sm font-medium text-gray-600">Don&apos;t have an account? <Link href="/register" className="text-emerald-600 transition duration-100">Register</Link></p>
         </div>
       </div>
