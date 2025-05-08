@@ -172,7 +172,7 @@ const handleSpecificFieldChange = () => {
                             </div>
                             <div className='w-full text-sm h-2.5 mb-4 text-red-600 text-start'>{errRef}</div>
                             <div className='w-full flex justify-end items-center'>
-                                <button onClick={handleOpen} type="button" className="font-medium text-xs md:text-sm text-gray-500 w-fit mb-3">Forgot password?</button>
+                                <button onClick={() => alert('open dialog')} type="button" className="font-medium text-xs md:text-sm text-gray-500 w-fit mb-3">Forgot password?</button>
                             </div>
                             <div className='flex flex-col gap-5'>
                                 {
