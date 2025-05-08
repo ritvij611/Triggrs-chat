@@ -4,8 +4,6 @@ import Image from 'next/image'
 import Header from "@/components/general/header";
 import Footer from '@/components/general/footer';
 
-
-
 export default function AboutPage() {
   return (
     <>

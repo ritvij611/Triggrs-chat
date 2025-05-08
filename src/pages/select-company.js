@@ -3,13 +3,10 @@ import { Search, Plus, Filter, X, ArrowRight } from 'lucide-react';
 import Link from "next/link";
 import Image from "next/image";
 import { toast } from 'sonner';
-import useAuth from '@/hooks/useAuth';
 import { useRouter } from "next/router";
 import GeneralModal from '@/components/general/GeneralModal';
 
-
 export default function SelectCompany() {
-  const { user } = useAuth();
   const router = useRouter();
   const [showCompanyList, setShowCompanyList] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState(null);
@@ -232,7 +229,6 @@ export default function SelectCompany() {
   };
   
   return (
-    !user || !user.authorised ? <></>: 
     <>
       <div className="bg-gray-50 min-h-screen p-8 relative">
         <div className="max-w-5xl mx-auto">

@@ -1,16 +1,25 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Header from "@/components/general/header";
 import Image from 'next/image'
 import Link from 'next/link'
 import Footer from "@/components/general/footer";
 
 export default function HomePage() {
+  const [isHydrated, setIsHydrated] = useState(false);
   const [planChanged, setPlanChanged] = useState('monthly');
 
 const planChange = (e) => {
   // e.preventDefault();
   setPlanChanged(e.target.value);
 }
+
+
+useEffect(() => {
+  setIsHydrated(true);
+}, []);
+
+
+if(!isHydrated) return;
   
 return (
   <div className="bg-white font-outfit">
@@ -54,101 +63,6 @@ return (
        
       </div>
     </div>
- 
-{/* <section className="relative bg-white py-4 px-2 pt-[80px] pb-[70px] lg:pt-[120px]">
-  <div className="lg:max-w-[1200px]  mx-auto">
-    <div className=" flex flex-wrap">
-      <div className="w-full px-3 lg:w-5/12">
-        <div className="hero-content lg:mt-28 mt-3">
-            <h1 id = "hero_title_sec" className="text-slate-800  lg:text-4xl lg:mb-5 lg:leading-[40px] leading-[28px] text-[24px] font-extrabold">Say hello👋<br/>at the right moment!</h1>
-            <Link href="#" className="inline-flex justify-between items-center py-1 px-1 pr-4 mb-1 text-sm text-gray-700 bg-gray-100 rounded-full " role="alert">
-            <span className="text-xs bg-emerald-600 rounded-full text-white px-4 py-1.5 mr-3">New</span> <span className="text-sm font-medium">Flowbite is out! See what&apos;s new</span> 
-            <svg className="ml-2 w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path></svg>
-        </Link>
-          <p className="text-gray-500  lg:mb-8 mt-4 mb-6 max-w-[480px] leading-[20px] lg:leading-[25px] text-sm lg:text-base font-medium">Real-time support at their fingertips! Ensure your customer support team is available through TriggrsChat for immediate assistance and seamless interactions</p>
-          <div className="flex flex-wrap gap-3 mt-1 lg:gap-6 items-center">
-              <Link href="/register" className="text-white overflow-hidden transition-all delay-300 hover:scale-105 duration-200 bg-emerald-500 relative after:absolute hover:after:bg-emerald-600 hover:after:rounded-5xl after:duration-500 after:transition-all hover:after:translate-x-0 after:-translate-x-full after:inset-0 after:-z-[1] after:rounded-full rounded-full inline-flex items-center justify-center py-2.5 lg:py-3 px-4 text-center text-base font-medium lg:px-5">
-                <span className="mr-2">
-                <svg className="w-4" xmlns="http://www.w3.org/2000/svg"  fill="#fff" viewBox="0 0 84 123">
-                  <g clipPath="url(#clip0_8059_79)"><path fill="#fff" d="M40.59 14.63a3.36 3.36 0 01-1 2.39 3.39 3.39 0 01-4.77 0 3.42 3.42 0 01-1-2.4V3.39A3.4 3.4 0 0137.2 0a3.34 3.34 0 012.39 1 3.39 3.39 0 011 2.4v11.23zm25 76.65a1.89 1.89 0 013.77 0v8.62a1.888 1.888 0 01-1.885 2.027 1.886 1.886 0 01-1.783-1.263 1.89 1.89 0 01-.102-.764v-8.62zm-11.13-3.81a1.89 1.89 0 013.77 0V99.9a1.888 1.888 0 01-1.885 2.027 1.886 1.886 0 01-1.783-1.263 1.89 1.89 0 01-.102-.764V87.47zm-28-7.63a1.924 1.924 0 01-.35-.23c-3.493-2.827-6.973-5.67-10.44-8.53a8.36 8.36 0 00-3.57-1.79 3.54 3.54 0 00-2 .09A2 2 0 009 70.49a6.9 6.9 0 00-.4 3.24 12.47 12.47 0 001.11 4 26.491 26.491 0 002.92 4.94l17.68 26.74c.195.302.318.644.36 1 .145 2.245.784 4.43 1.87 6.4a2.89 2.89 0 002.57 1.46c9 0 18.62-.34 27.53 0a8.329 8.329 0 004.69-1.51 14.998 14.998 0 004.29-5l.34-.57c3.4-5.87 6.71-11.57 7-18.33L78.85 85v-2.17c.06-5.74.16-14.54-4.62-15.4h-3.09c.09 2.46 0 5-.18 7.3-.08 1.36-.15 2.63-.15 3.79a2.31 2.31 0 11-4.62 0c0-1.1.08-2.52.17-4 .32-5.73.75-13.38-3.24-14.14h-3a2.199 2.199 0 01-.58-.07 69.07 69.07 0 01-.13 8.29c-.07 1.36-.15 2.63-.15 3.79a2.31 2.31 0 11-4.61 0c0-1.1.08-2.52.16-4 .33-5.73.76-13.38-3.24-14.14h-3a2 2 0 01-.6-.08V66a2.31 2.31 0 11-4.61 0V42c0-4-1.64-6.55-3.73-7.61a5.32 5.32 0 00-4.71-.06l-.1.06c-2.07 1-3.69 3.59-3.69 7.7v42a2.31 2.31 0 11-4.62 0v-4.25h-.05zm44.14-17c.2-.052.405-.079.61-.08h3.19c.179 0 .357.02.53.06 8.73 1.4 8.61 12.65 8.52 20 0 3.4.14 6.78.18 10.17-.39 7.91-4 14.1-7.67 20.47l-.32.55a19.495 19.495 0 01-5.64 6.54 12.877 12.877 0 01-7.29 2.32H35.17a7.238 7.238 0 01-3.696-.873 7.24 7.24 0 01-2.744-2.627 19 19 0 01-2.56-7.88L8.94 85.42a30.999 30.999 0 01-3.44-5.84A16.88 16.88 0 014 74a11.42 11.42 0 01.8-5.42 6.54 6.54 0 013.55-3.49 8.05 8.05 0 014.65-.33 13.19 13.19 0 015.61 2.77L26.45 74V42.09c0-6.1 2.73-10 6.22-11.82l.15-.06a9.81 9.81 0 014.33-1 10 10 0 014.49 1.07C45.16 32.06 47.91 36 47.91 42v7.6c.196-.052.398-.079.6-.08h3.19c.179 0 .357.02.53.06 3.82.61 5.73 3.16 6.63 6.47a2.25 2.25 0 011.23-.36h3.18c.179-.001.357.02.53.06 4.07.65 6 3.49 6.79 7.11l.01-.02zM14.63 37A3.33 3.33 0 0117 38a3.39 3.39 0 01-2.39 5.79H3.39a3.359 3.359 0 01-2.39-1A3.4 3.4 0 013.39 37h11.24zM23 20.55a3.39 3.39 0 11-4.8 4.79l-7.91-7.94a3.39 3.39 0 114.79-4.8L23 20.55zm36.2 23.26a3.41 3.41 0 01-3.4-3.4A3.41 3.41 0 0159.2 37h11.23a3.348 3.348 0 012.4 1 3.4 3.4 0 01-2.4 5.79l-11.23.02zm-3.58-19.07a3.394 3.394 0 01-4.8-4.8l7.91-8a3.394 3.394 0 014.8 4.8l-7.91 8z"></path></g>
-                  <defs><clipPath id="clip0_8059_79"><path fill="#fff" d="M0 0H83.62V122.88H0z"></path></clipPath></defs>
-                </svg>
-                </span>Get started
-              </Link>
-          </div>
-        </div>
-      </div>
-      <div className="hidden px-4 lg:block lg:w-1/12"></div>
-      <div className="w-full  px-4 lg:w-6/12">
-        <div className="lg:ml-auto  lg:text-right">
-          <div className="relative z-10 inline-block pt-8 lg:pt-0">
-          <Image className='aspect-square' src="/images/home-2.png"  alt="Profile Image" width={450} height={450} /> 
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section> */}
-
-{/* <section className="bg-white  ">
-    <div className="py-8 px-4 mx-auto lg:max-w-[1300px] text-center lg:py-16 lg:px-12">
-        <Link href="#" className="inline-flex justify-between items-center py-1 px-1 pr-4 mb-7 text-sm text-gray-700 bg-gray-100 rounded-full " role="alert">
-            <span className="text-xs bg-emerald-600 rounded-full text-white px-4 py-1.5 mr-3">New</span> <span className="text-sm font-medium">Flowbite is out! See what's new</span> 
-            <svg className="ml-2 w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path></svg>
-        </Link>
-        <h1 className="mb-4 text-3xl font-bold  text-slate-800 lg:text-4xl">Say hello👋<br/> at the right moment!</h1>
-        <p className="mb-8 text-base font-normal text-gray-600 lg:text-lg xl:px-48">Real-time support at their fingertips! Ensure your customer support team is available through TriggrsChat for immediate assistance and seamless interactions.</p>
-        <div className="flex flex-wrap justify-center gap-3 mt-1 lg:gap-6 items-center">
-              <Link href="/register" className="text-white overflow-hidden transition-all delay-300 hover:scale-105 duration-200 bg-emerald-500 relative after:absolute hover:after:bg-emerald-600 hover:after:rounded-5xl after:duration-500 after:transition-all hover:after:translate-x-0 after:-translate-x-full after:inset-0 after:-z-[1] after:rounded-full rounded-full inline-flex items-center justify-center py-2.5 lg:py-3 px-4 text-center text-base font-medium lg:px-5">
-                <span className="mr-2">
-                <svg className="w-4" xmlns="http://www.w3.org/2000/svg"  fill="#fff" viewBox="0 0 84 123">
-                  <g clipPath="url(#clip0_8059_79)"><path fill="#fff" d="M40.59 14.63a3.36 3.36 0 01-1 2.39 3.39 3.39 0 01-4.77 0 3.42 3.42 0 01-1-2.4V3.39A3.4 3.4 0 0137.2 0a3.34 3.34 0 012.39 1 3.39 3.39 0 011 2.4v11.23zm25 76.65a1.89 1.89 0 013.77 0v8.62a1.888 1.888 0 01-1.885 2.027 1.886 1.886 0 01-1.783-1.263 1.89 1.89 0 01-.102-.764v-8.62zm-11.13-3.81a1.89 1.89 0 013.77 0V99.9a1.888 1.888 0 01-1.885 2.027 1.886 1.886 0 01-1.783-1.263 1.89 1.89 0 01-.102-.764V87.47zm-28-7.63a1.924 1.924 0 01-.35-.23c-3.493-2.827-6.973-5.67-10.44-8.53a8.36 8.36 0 00-3.57-1.79 3.54 3.54 0 00-2 .09A2 2 0 009 70.49a6.9 6.9 0 00-.4 3.24 12.47 12.47 0 001.11 4 26.491 26.491 0 002.92 4.94l17.68 26.74c.195.302.318.644.36 1 .145 2.245.784 4.43 1.87 6.4a2.89 2.89 0 002.57 1.46c9 0 18.62-.34 27.53 0a8.329 8.329 0 004.69-1.51 14.998 14.998 0 004.29-5l.34-.57c3.4-5.87 6.71-11.57 7-18.33L78.85 85v-2.17c.06-5.74.16-14.54-4.62-15.4h-3.09c.09 2.46 0 5-.18 7.3-.08 1.36-.15 2.63-.15 3.79a2.31 2.31 0 11-4.62 0c0-1.1.08-2.52.17-4 .32-5.73.75-13.38-3.24-14.14h-3a2.199 2.199 0 01-.58-.07 69.07 69.07 0 01-.13 8.29c-.07 1.36-.15 2.63-.15 3.79a2.31 2.31 0 11-4.61 0c0-1.1.08-2.52.16-4 .33-5.73.76-13.38-3.24-14.14h-3a2 2 0 01-.6-.08V66a2.31 2.31 0 11-4.61 0V42c0-4-1.64-6.55-3.73-7.61a5.32 5.32 0 00-4.71-.06l-.1.06c-2.07 1-3.69 3.59-3.69 7.7v42a2.31 2.31 0 11-4.62 0v-4.25h-.05zm44.14-17c.2-.052.405-.079.61-.08h3.19c.179 0 .357.02.53.06 8.73 1.4 8.61 12.65 8.52 20 0 3.4.14 6.78.18 10.17-.39 7.91-4 14.1-7.67 20.47l-.32.55a19.495 19.495 0 01-5.64 6.54 12.877 12.877 0 01-7.29 2.32H35.17a7.238 7.238 0 01-3.696-.873 7.24 7.24 0 01-2.744-2.627 19 19 0 01-2.56-7.88L8.94 85.42a30.999 30.999 0 01-3.44-5.84A16.88 16.88 0 014 74a11.42 11.42 0 01.8-5.42 6.54 6.54 0 013.55-3.49 8.05 8.05 0 014.65-.33 13.19 13.19 0 015.61 2.77L26.45 74V42.09c0-6.1 2.73-10 6.22-11.82l.15-.06a9.81 9.81 0 014.33-1 10 10 0 014.49 1.07C45.16 32.06 47.91 36 47.91 42v7.6c.196-.052.398-.079.6-.08h3.19c.179 0 .357.02.53.06 3.82.61 5.73 3.16 6.63 6.47a2.25 2.25 0 011.23-.36h3.18c.179-.001.357.02.53.06 4.07.65 6 3.49 6.79 7.11l.01-.02zM14.63 37A3.33 3.33 0 0117 38a3.39 3.39 0 01-2.39 5.79H3.39a3.359 3.359 0 01-2.39-1A3.4 3.4 0 013.39 37h11.24zM23 20.55a3.39 3.39 0 11-4.8 4.79l-7.91-7.94a3.39 3.39 0 114.79-4.8L23 20.55zm36.2 23.26a3.41 3.41 0 01-3.4-3.4A3.41 3.41 0 0159.2 37h11.23a3.348 3.348 0 012.4 1 3.4 3.4 0 01-2.4 5.79l-11.23.02zm-3.58-19.07a3.394 3.394 0 01-4.8-4.8l7.91-8a3.394 3.394 0 014.8 4.8l-7.91 8z"></path></g>
-                  <defs><clipPath id="clip0_8059_79"><path fill="#fff" d="M0 0H83.62V122.88H0z"></path></clipPath></defs>
-                </svg>
-                </span>Get started
-              </Link>
-          </div>
-        
-    </div>
-</section> */}
-
-
-{/* 
-<div className="bg-white">
-      <div className="mx-auto lg:max-w-[1300px] py-10">
-        <div className="relative isolate overflow-hidden bg-gradient-to-r from-black to-slate-700 px-6 pt-16 shadow-2xl sm:rounded-3xl sm:px-16 md:pt-24 lg:flex lg:gap-x-20 lg:px-24 lg:pt-0">
-          
-          <div className="mx-auto max-w-md text-center lg:mx-0 lg:flex-auto lg:py-32 lg:text-left">
-            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            About Triggrs Chat
-            </h2>
-            <p className="mt-6 text-lg leading-8 text-gray-300">
-            Welcome to our Chat Automation Service! Revolutionize your business communication and enhance customer experience with our cutting-edge chatbot solutions.
-            </p>
-            <div className="mt-10 flex items-center justify-center gap-x-6 lg:justify-start">
-              <a
-                href="#"
-                className="rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-              >
-                Get started
-              </a>
-              <a href="#" className="text-sm font-semibold leading-6 text-white">
-                Learn more <span aria-hidden="true">→</span>
-              </a>
-            </div>
-          </div>
-          <div className="relative mt-16 lg:h-80 lg:mt-8">
-            <Image
-              className="absolute  left-0 top-0 w-[57rem] max-w-none rounded-2xl bg-white/5 ring-1 ring-white/10"
-              src="/images/dashboard.png"
-              alt="App screenshot"
-              width={1824}
-              height={1080}
-            />
-          </div>
-        </div>
-      </div>
-    </div> */}
 
     <section className="bg-gray-950">
     <div className="gap-8  items-center py-8 px-4 mx-auto w-full  md:grid md:grid-cols-2  lg:px-6">
@@ -163,17 +77,7 @@ return (
         </div>
     </div>
 </section>
-    
 
-{/* <section id="about" className="bg-gradient-to-r lg:px-14  from-slate-800 to-black py-6 sm:py-8 ">
-  <div className="mx-auto w-full ">
-    <div className="rounded-lg px-4 py-6 md:py-8 lg:py-12">
-      <p className="mb-2 text-center font-semibold text-emerald-500 md:mb-3 lg:text-base">About us</p>
-      <h2 className="mb-4 text-center text-3xl font-bold  text-gray-200 md:mb-6 lg:text-4xl">About Triggrs Chat</h2>
-      <p className="mx-auto max-w-screen-md text-center text-gray-300 md:text-lg">Welcome to our Chat Automation Service! Revolutionize your business communication and enhance customer experience with our cutting-edge chatbot solutions.</p>
-    </div>
-  </div>
-</section> */}
 
 <section id="features" className="bg-white  py-10 lg:py-10">
   <div className="py-8 px-4 mx-auto lg:max-w-[1200px] sm:py-16 lg:px-6">

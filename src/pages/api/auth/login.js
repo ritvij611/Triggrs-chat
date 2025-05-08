@@ -1,44 +1,52 @@
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
-import { NextApiRequest, NextApiResponse } from 'next';
+import { EnvironmentFactory } from '../endpoint';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const backendUrl = 'https://dev-wa-api.triggrsweb.com/auth/login/password';
-  
+  const environment = EnvironmentFactory.getEnvironment(process.env.STAGE);
+  // console.log(apiUrl);
   try {
-    const response = await axios.post(backendUrl, req.body, {
+    const responseData = await axios({
+      method: 'POST',
+      url: `${environment?.config?.wa?.apiUrl}/auth/login/password`,
+      data: req.body,
       headers: {
         'Content-Type': 'application/json',
       },
     });
-    
-    if (!response.data.token) {
+
+    const response = responseData.data;
+
+    if (!response.token) {
       throw new Error('No token received from backend');
     }
 
-    // Generate a new JWT token with the user data
-    const token = jwt.sign({
-      user: response.data.user,
-      exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // Token expires in 24 hours
-    }, process.env.SESS_SECRET_TOKEN);
+    const token = jwt.sign(
+      {
+        user: response.user,
+        exp: Math.floor(Date.now() / 1000) + 24 * 60 * 60,
+      },
+      process.env.SESS_SECRET_TOKEN
+    );
 
-    // Set the token in a cookie
-    res.setHeader('Set-Cookie', `twchat=${token}; Path=/; HttpOnly; SameSite=Lax; Secure`);
-    
-    // Return the user data and token
-    res.status(200).json({
-      user: response.data.user,
-      token: token
-    });
-  } catch (error) {
-    console.error('Error fetching data from backend:', error);
-    res.status(error.response?.status || 500).json({
-      error: error.message,
-      details: error.response?.data || null,
-    });
-  }
+    res.setHeader(
+      'Set-Cookie',
+      `twchat=${token}; Path=/; HttpOnly; SameSite=Lax; Secure`
+    );
+
+    res.status(responseData.status).json({message: response?.message});
+  } catch(e){
+    console.log('Error while create visa', e);
+    if(e.response && e.response.data && typeof e.response.data == 'object'){
+        res.status(e.status).json(e.response.data);
+    }else if(e.response && e.response.data && typeof e.response.data == 'string'){
+        res.status(e.status).json({message: e.response.data});
+    }else{
+        res.status(e.status).json({message: 'Something went wrong'});
+    }
+}
 }
