@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    
+</body>
+<script>
+    function generateHtml(json) {
+    let html = '';
+  
+    function arrayToString(array = []){
+        if(array.length > 0){
+            let newArray = "";
+            for (let i = 0; i < array.length; i++) {
+                newArray+= `${array[i]} `;
+            }
+            return newArray;
+        }
+    }
+    // Traverse the JavaScript object recursively
+    function traverse(obj) {
+        for(let key in obj){
+            if(typeof obj[key] == 'object'){
+                // console.log(obj[key]);
+                let id = obj[key].id;
+                let classes = arrayToString(obj[key].class); 
+                // console.log(arrayToString(obj[key].class));
+                // clg
+                if(obj[key].children){
+                   if(obj[key].id){
+                    html += `<${key} id = "${obj[key].id}" class = "${classes}">`;
+                        traverse(obj[key]);
+                    html += `</${key}>`;
+                   }else{
+                    html += `<${key} class = "${classes}">`;
+                        traverse(obj[key]);
+                    html += `</${key}>`;
+                   }
+                }else{
+                    console.log('No children found');
+                }
+                // traverse(obj[key]);
+                // if(obj[key].id){
+                //     console.log('One is id');
+                // }else{
+                //     console.warn('No Id found');
+                // }
+                // if(obj[key].class){
+                //     if(obj[key].class.length > 0){
+                //         console.log(obj[key].class);
+                //     }else{
+                //         console.warn(`No class found in ${key} tag!`);
+                //     }
+                //     // traverse(obj[key].class);
+                //     // console.log('This is class but data format is:'+ typeof obj[key].class);
+                // }
+                if(obj[key].style){
+                    console.log('One is style');
+                }else{
+                    console.warn('No style tag found');
+                }
+            }
+        }
+    //   for (let key in obj) {
+    //     if (obj.hasOwnProperty(key)) {
+    //       if (typeof obj[key] === 'object') {
+    //         // If the value is an object, recursively traverse it
+    //         html += `<${key}>`;
+    //         traverse(obj[key]);
+    //         html += `</${key}>`;
+    //       } else {
+    //         // If the value is a string, add it as text content
+    //         html += `<${key}>${obj[key]}</${key}>`;
+    //       }
+    //     }
+    //   }
+    }
+  
+    traverse(json);
+    return html;
+  }
+  
+  const json = {
+    "html": {
+      "id": "tw-id",
+      "class": ['text-red-500', 'bg-white', 'p-4'],
+      "children": [],
+    //   "style": {}
+    }
+  };
+  
+  const html = generateHtml(json);
+//   console.log(html);
+</script>
+</html>
