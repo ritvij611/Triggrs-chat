@@ -2,17 +2,15 @@ import { useEffect, useState, useRef } from 'react';
 import { Search, Plus, Filter, X, ArrowRight } from 'lucide-react';
 import Link from "next/link";
 import Image from "next/image";
-import SnackBar from '@/components/general/SnackBar';
+import { toast } from 'sonner';
 import useAuth from '@/hooks/useAuth';
 import { useRouter } from "next/router";
-import { startCompanySession } from '@/helper/start-session';
 import GeneralModal from '@/components/general/GeneralModal';
 
-export const SelectCompany = () => {
+
+export default function SelectCompany() {
   const { user } = useAuth();
   const router = useRouter();
-  const [showSnackBar, setShowSnackBar] = useState(false);
-  const [snackBarContent, setSnackBarContent] = useState('Default Content');
   const [showCompanyList, setShowCompanyList] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [companies, setCompanies] = useState([]);
@@ -51,28 +49,68 @@ export const SelectCompany = () => {
   }
 
   const getUserCompanies = async() => {
-    const response = await fetch(`/api/get-user-companies/`,{
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'userID': `${user.id}`
+    try {
+      // Get token from cookies using a more reliable method
+      const cookies = document.cookie;
+      const tokenCookie = cookies
+        .split('; ')
+        .find(row => row.startsWith('twchat='))
+        ?.split('=')[1];
+        
+      if (!tokenCookie) {
+        console.error('No twchat token found in cookies');
+        toast({
+          title: 'Error',
+          description: 'Authentication token missing. Please log in again.',
+          variant: 'destructive',
+        });
+        router.replace('/login');
+        return;
       }
-    });
-
-    const data = await response.json();
-   
-    if(!response.ok){
-      return;
+  
+      const response = await fetch(`/api/get-user-companies/`,{
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+  
+      const data = await response.json();
+      
+      if(!response.ok){
+        console.error('Error fetching user companies:', data.message || 'Unknown error');
+        toast({
+          title: 'Error',
+          description: data.message || 'Failed to fetch user companies',
+          variant: 'destructive',
+        });
+        return;
+      }
+  
+      // Map API response to expected format: [{ companyName, active }, ...]
+      const arr = (data.companies || []).map(item => ({
+        companyName: item.companyName || item.companyID?.companyName, // Handle both structures
+        active: item.active ?? item.companyID?.active, // Handle both structures, default to false if undefined
+      }));
+  
+      console.log('Mapped user companies:', arr); // Debug mapped data
+  
+      setUserCompanies(arr);
+      if (arr.length > 0) {
+        setSelectedCompany(arr[0]);
+      } else {
+        console.warn('No user companies found in response');
+      }
+    } catch (error) {
+      console.error('Error in getUserCompanies:', error);
+      toast({
+        title: 'Error',
+        description: 'An error occurred while fetching your companies',
+        variant: 'destructive',
+      });
     }
-    const arr = data.companies.map(item => ({
-      companyName: item.companyID.companyName,
-      active: item.companyID.active,
-    }));
-    setUserCompanies(arr);
-    if(arr.length > 0){
-      setSelectedCompany(arr[0]);
-    }  
-  }
+  };
 
   const findCompany = async(company) => {
     const response = await fetch(`/api/find-company/`,{
@@ -90,15 +128,19 @@ export const SelectCompany = () => {
     if(!response.ok){
       setLoading(false);
       if(response.status == 404){
-        setSnackBarContent("Please get subscription to proceed");
-        setShowSnackBar(true);
-        setTimeout(()=>setShowSnackBar(false), 3000);
+        toast({
+          title: "Error",
+          description: "Please get subscription to proceed",
+          variant: "destructive"
+        });
         router.replace(`/select-plan`);
       }
       else {
-        setSnackBarContent("Internal Server Error");
-        setShowSnackBar(true);
-        setTimeout(()=>setShowSnackBar(false), 7000);
+        toast({
+          title: "Error",
+          description: "Internal Server Error",
+          variant: "destructive"
+        });
       }
       return;
     }
@@ -108,9 +150,11 @@ export const SelectCompany = () => {
     if(data.active){
       router.replace("/dashboard/main");
     } else {
-      setSnackBarContent("Please get subscription to proceed");
-      setShowSnackBar(true);
-      setTimeout(()=>setShowSnackBar(false), 7000);
+      toast({
+        title: "Error",
+        description: "Please get subscription to proceed",
+        variant: "destructive"
+      });
       router.replace(`/select-plan`);
     }
 
@@ -182,9 +226,11 @@ export const SelectCompany = () => {
       await findCompany(selectedCompany);
       setLoading(false);
     } else {
-      setSnackBarContent("Please select a company to continue");
-      setShowSnackBar(true);
-      setTimeout(()=>{setShowSnackBar(false)}, 3000);
+      toast({
+        title: "Error",
+        description: "Please select a company to continue",
+        variant: "destructive"
+      });
     }
   };
   
@@ -407,9 +453,6 @@ export const SelectCompany = () => {
           </button>
         } 
       />
-      <SnackBar show = {showSnackBar} content={snackBarContent} />  
     </>
   );
-};
-
-export default SelectCompany;
+}

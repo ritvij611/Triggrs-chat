@@ -6,50 +6,34 @@ import Country from '@/components/general/country';
 import CompanyLogo from '@/components/general/companylogo';
 import { Combobox } from '@/components/ui/combobox';
 
-
 export async function getServerSideProps(context) {
-    // Fetch data from external API
-    try {
-      const cookie = context.req.headers.cookie;
-      if (cookie) {
-        const token = parseCookie(cookie).get('ft') ? parseCookie(cookie).get('ft') : '';
-        if (!token) {
-          return { props: { status: 200 } }
-        } else {
-          return {
-            redirect: {
-              permanent: false,
-              destination: "/login",
-            },
-            props: { status: 401 },
-          }
-        }
+  // Fetch data from external API
+  try {
+    const cookie = context.req.headers.cookie;
+    if (cookie) {
+      const token = parseCookie(cookie).get('twchat') ? parseCookie(cookie).get('twchat') : '';
+      if (!token) {
+        return { props: { status: 200 } }
       } else {
         return {
           redirect: {
             permanent: false,
-            destination: "/login",
+            destination: "/select-company",
           },
           props: { status: 401 },
         }
       }
-    } catch (e) {
-      console.log('error data token', e);
-      return {
-        redirect: {
-          permanent: false,
-          destination: "/login",
-        },
-        props: { status: 401 },
-      }
+    } else {
+      return { props: { status: 200 } }
     }
-    // Pass data to the page via props
+  } catch (e) {
+    console.log('error data token', e);
+    return { props: { status: 200 } }
   }
+}
 
 const Login = (props) => {
-  const [passwordComp, setPasswordComp] = useState(true)
   const router = useRouter();
-  const [openForgot, setOpenForgot] = useState(false);
   const whatsappRef = useRef();
   const passwordRef = useRef();
   const [errRef, setErrRef] = useState('');
@@ -58,78 +42,59 @@ const Login = (props) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showSnackBar, setShowSnackBar] = useState(false);
   const [snackBarContent, setSnackBarContent] = useState('Default Content');
-
-  const pushPasswordComp = () =>{
-    setPasswordComp(true);
-  }
-
-  const pushToOtpComp = () =>{
-    setPasswordComp(false);
-  }
+  const [passwordComp, setPasswordComp] = useState(true);
+  
+  // Remove this if not using it - less state is better
+  // const [openForgot, setOpenForgot] = useState(false);
 
   const submitLoginPasswordAccess = async (e) => {
     e.preventDefault();
     const whatsapp = whatsappRef.current.value;
-    const country = countryRef.current.value;
     const password = passwordRef.current.value;
-    if (whatsapp == '' || country == '' || countryCodeRef == '' || password == '') {
-        setErrRef("Please fill all input");
-    } else {
-        setIsLoading(true);
-        try {
-            const response = await fetch('/api/login-wrapper', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    "phoneNumber": parseInt(whatsapp),
-                    "country": country,
-                    "countryCode": parseInt(countryCodeRef),
-                    "password": password
-                })
-            });  
-            
-            const data = await response.json();
-            // console.log(data);
-            if(!response.ok){
-                setErrRef(data?.message || 'An error occurred. Please try again.');
-                setTimeout(() => setIsLoading(false), 300);
-                return;
-            }
 
-            setSnackBarContent('Login Successfully Done');
-            setShowSnackBar(true);
-            e.target.reset();
-            setErrRef('');
-            startUserSession(data.token);
-            setIsLoading(false);
-            setTimeout(() => setShowSnackBar(false), 3000);
-            // Redirect to select company
-            router.replace('/select-company');
-        } catch (error) {
-            console.error('Login error:', error);
-            setErrRef('Something went wrong. Please try again later.');
-            setTimeout(() => setIsLoading(false), 300);
-        } 
-
+    if (!whatsapp || !password) {
+      setErrRef("Please fill all input");
+      return;
     }
-}
 
-const handleSpecificFieldChange = () => {
-    // console.log(pushPasswordComp)
-    const selectedCountry = countryRef.current.value;
-    // console.log(selectedCountry)
-    const selectedCountryObj = Country.find((country) => country.country === selectedCountry);
-    if (selectedCountryObj) {
-        // Selected country found in the countries array
-        setCountryCodeRef(selectedCountryObj.code);
-    } else {
-        // Selected country not found in the countries array
-        console.log('Country not found');
-    }
-};
- 
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          "phoneNumber": parseInt(whatsapp),
+          "country": country.country,
+          "countryCode": parseInt(country.code),
+          "password": password
+        })
+      });  
+      
+      const data = await response.json();
+      if(!response.ok){
+        setErrRef(data?.message || 'An error occurred. Please try again.');
+        setIsLoading(false); // Removed timeout
+        return;
+      }
+
+      setSnackBarContent('Login Successfully Done');
+      setShowSnackBar(true);
+      e.target.reset();
+      setErrRef('');
+      setIsLoading(false); // Removed timeout
+      
+      // Use router.push instead of replace and wait for it to complete
+      router.push('/select-company').then(() => {
+        setTimeout(() => setShowSnackBar(false), 3000);
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      setErrRef('Something went wrong. Please try again later.');
+      setIsLoading(false); // Removed timeout
+    } 
+  };
 
   return (
     <>
@@ -172,7 +137,7 @@ const handleSpecificFieldChange = () => {
                             </div>
                             <div className='w-full text-sm h-2.5 mb-4 text-red-600 text-start'>{errRef}</div>
                             <div className='w-full flex justify-end items-center'>
-                                <button onClick={() => alert('open dialog')} type="button" className="font-medium text-xs md:text-sm text-gray-500 w-fit mb-3">Forgot password?</button>
+                                <button onClick={()=> alert('alert')} type="button" className="font-medium text-xs md:text-sm text-gray-500 w-fit mb-3">Forgot password?</button>
                             </div>
                             <div className='flex flex-col gap-5'>
                                 {
