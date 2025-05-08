@@ -13,7 +13,7 @@ const planChange = (e) => {
 }
   
 return( 
-  <>
+  <div className="bg-white font-outfit">
  <Header/>
  {/* <MobileHeader/> */}
 
@@ -37,9 +37,7 @@ return(
            </div>
           </div>
           <div className="text-center">
-            <h1 className="text-2xl font-extrabold lg:leading-[65px] text-gray-900 lg:text-6xl">
-            Effortless Communication. Enhanced Engagement.
-            </h1>
+            <h1 className="text-2xl font-inter font-extrabold lg:leading-[65px] text-gray-900 lg:text-6xl">Effortless Communication. Enhanced Engagement</h1>
             <p className="mt-6 text-base lg:text-lg  text-gray-700">
             Revolutionize Your Business with WhatsApp Solutions: Seamless Communication, Enhanced Engagement, and Unmatched Growth – Elevate Your Success Today!
             </p>
@@ -62,12 +60,12 @@ return(
     <div className=" flex flex-wrap">
       <div className="w-full px-3 lg:w-5/12">
         <div className="hero-content lg:mt-28 mt-3">
-            <h1 id = "hero_title_sec" className="text-slate-800 font-inter lg:text-4xl lg:mb-5 lg:leading-[40px] leading-[28px] text-[24px] font-extrabold">Say hello👋<br/>at the right moment!</h1>
+            <h1 id = "hero_title_sec" className="text-slate-800  lg:text-4xl lg:mb-5 lg:leading-[40px] leading-[28px] text-[24px] font-extrabold">Say hello👋<br/>at the right moment!</h1>
             <Link href="#" className="inline-flex justify-between items-center py-1 px-1 pr-4 mb-1 text-sm text-gray-700 bg-gray-100 rounded-full " role="alert">
             <span className="text-xs bg-emerald-600 rounded-full text-white px-4 py-1.5 mr-3">New</span> <span className="text-sm font-medium">Flowbite is out! See what&apos;s new</span> 
             <svg className="ml-2 w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path></svg>
         </Link>
-          <p className="text-gray-500 font-inter lg:mb-8 mt-4 mb-6 max-w-[480px] leading-[20px] lg:leading-[25px] text-sm lg:text-base font-medium">Real-time support at their fingertips! Ensure your customer support team is available through TriggrsChat for immediate assistance and seamless interactions</p>
+          <p className="text-gray-500  lg:mb-8 mt-4 mb-6 max-w-[480px] leading-[20px] lg:leading-[25px] text-sm lg:text-base font-medium">Real-time support at their fingertips! Ensure your customer support team is available through TriggrsChat for immediate assistance and seamless interactions</p>
           <div className="flex flex-wrap gap-3 mt-1 lg:gap-6 items-center">
               <Link href="/register" className="text-white overflow-hidden transition-all delay-300 hover:scale-105 duration-200 bg-emerald-500 relative after:absolute hover:after:bg-emerald-600 hover:after:rounded-5xl after:duration-500 after:transition-all hover:after:translate-x-0 after:-translate-x-full after:inset-0 after:-z-[1] after:rounded-full rounded-full inline-flex items-center justify-center py-2.5 lg:py-3 px-4 text-center text-base font-medium lg:px-5">
                 <span className="mr-2">
@@ -92,7 +90,7 @@ return(
   </div>
 </section> */}
 
-{/* <section className="bg-white font-inter ">
+{/* <section className="bg-white  ">
     <div className="py-8 px-4 mx-auto lg:max-w-[1300px] text-center lg:py-16 lg:px-12">
         <Link href="#" className="inline-flex justify-between items-center py-1 px-1 pr-4 mb-7 text-sm text-gray-700 bg-gray-100 rounded-full " role="alert">
             <span className="text-xs bg-emerald-600 rounded-full text-white px-4 py-1.5 mr-3">New</span> <span className="text-sm font-medium">Flowbite is out! See what's new</span> 
@@ -167,17 +165,17 @@ return(
 </section>
     
 
-{/* <section id="about" className="bg-gradient-to-r lg:px-14 font-inter from-slate-800 to-black py-6 sm:py-8 ">
+{/* <section id="about" className="bg-gradient-to-r lg:px-14  from-slate-800 to-black py-6 sm:py-8 ">
   <div className="mx-auto w-full ">
     <div className="rounded-lg px-4 py-6 md:py-8 lg:py-12">
       <p className="mb-2 text-center font-semibold text-emerald-500 md:mb-3 lg:text-base">About us</p>
-      <h2 className="mb-4 text-center text-3xl font-bold font-inter text-gray-200 md:mb-6 lg:text-4xl">About Triggrs Chat</h2>
+      <h2 className="mb-4 text-center text-3xl font-bold  text-gray-200 md:mb-6 lg:text-4xl">About Triggrs Chat</h2>
       <p className="mx-auto max-w-screen-md text-center text-gray-300 md:text-lg">Welcome to our Chat Automation Service! Revolutionize your business communication and enhance customer experience with our cutting-edge chatbot solutions.</p>
     </div>
   </div>
 </section> */}
 
-<section id="features" className="bg-white font-inter py-10 lg:py-10">
+<section id="features" className="bg-white  py-10 lg:py-10">
   <div className="py-8 px-4 mx-auto lg:max-w-[1200px] sm:py-16 lg:px-6">
       <div className="flex flex-col text-center w-full mb-20">
       <h1 className="lg:text-4xl text-3xl font-bold text-slate-700 mb-4 ">Features</h1>
@@ -233,10 +231,10 @@ return(
   </div>
 </section>
 
-<section className="bg-white py-6 sm:py-8 lg:py-12 font-inter">
+<section className="bg-white py-6 sm:py-8 lg:py-12 ">
   <div className="mx-auto lg:max-w-[1280px] px-4 md:px-8">
     <div className="mb-4 flex flex-col items-center md:mb-8 lg:mb-12 lg:flex-row lg:justify-between">
-      <h2 className="mb-2 text-center text-3xl font-inter font-bold text-slate-700 lg:mb-0 lg:text-4xl">Integrations</h2>
+      <h2 className="mb-2 text-center text-3xl  font-bold text-slate-700 lg:mb-0 lg:text-4xl">Integrations</h2>
       {/* <p className="max-w-md text-center text-gray-600 lg:text-right">Filler text is dummy text which has no meaning however looks very similar to real text.</p> */}
     </div>
 
@@ -258,12 +256,12 @@ return(
   </div>
 </section>
 
-<section id="pricing" className="relative  overflow-hidden font-inter bg-white pt-16 pb-12 lg:pt-[50px] lg:pb-[90px]">
+<section id="pricing" className="relative  overflow-hidden  bg-white pt-16 pb-12 lg:pt-[50px] lg:pb-[90px]">
   <div className="lg:max-w-[1200px] mx-auto">
     <div className="flex flex-wrap">
       <div className="w-full px-4">
         <div className="mx-auto mb-[45px] max-w-[510px] text-center lg:mb-10">
-          <h2 className="text-slate-700 font-inter font-bold  mb-3 text-3xl sm:text-4xl md:text-[40px]">Our Pricing Plan</h2>
+          <h2 className="text-slate-700  font-bold  mb-3 text-3xl sm:text-4xl md:text-[40px]">Our Pricing Plan</h2>
           <p className="text-body-color text-base">Flexible Pricing, No setup fees</p>
         </div>
       </div>
@@ -286,10 +284,10 @@ return(
   </div>
 </section>
 
-<section className="font-inter bg-white py-8">
+<section className=" bg-white py-8">
   <div className="lg:max-w-[1300px] px-2 pb-10 mx-auto">
     <div className="flex flex-col text-center px-3 w-full mb-8">
-      <h1 className="lg:text-3xl text-2xl  font-inter font-bold text-slate-700">Billing based on Conversations, Not Messages</h1>
+      <h1 className="lg:text-3xl text-2xl   font-bold text-slate-700">Billing based on Conversations, Not Messages</h1>
       <span className="text-lg text-emerald-600 mt-1 italic title-font ">Yes, that&apos;s correct. Each conversation has a 24-hour window where you can send unlimited messages.</span>
     </div>
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2">
@@ -339,10 +337,10 @@ return(
 
 
 <section>
-<div  className="py-12 lg:py-20 font-inter bg-white">
+<div  className="py-12 lg:py-20  bg-white">
   <div className="lg:max-w-[1300px]  items-center mx-auto px-6 text-gray-600 md:px-12 xl:px-6">
   <div className=" mx-auto items-center md:mb-8 lg:mb-8 ">
-      <h2 className="mb-2 text-center text-3xl font-inter font-bold text-slate-700 lg:mb-0 lg:text-4xl">Our Blogs</h2>
+      <h2 className="mb-2 text-center text-3xl  font-bold text-slate-700 lg:mb-0 lg:text-4xl">Our Blogs</h2>
     </div>
     {/* <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
      <BlogCard/>
@@ -366,7 +364,7 @@ return(
                 <span className="mb-2 text-base font-semibold text-white">
                   Find Your Next Dream App
                 </span>
-                <h2 className="mb-6 text-3xl w-[80%] font-inter font-bold leading-tight text-white sm:mb-8 lg:text-[38px] lg:mb-0">
+                <h2 className="mb-6 text-3xl w-[80%]  font-bold leading-tight text-white sm:mb-8 lg:text-[38px] lg:mb-0">
                   Get started with our free trial
                 </h2>
               </div>
@@ -386,6 +384,6 @@ return(
       </section>
 
 <Footer/>
-  </>
+  </div>
 )
 }

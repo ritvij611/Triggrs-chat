@@ -17,7 +17,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 
-export function Combobox({options=[], value='', icon=false, placeholder='', emptyItem=<>No Item found</>, searchPlaceholder='Search', className='w-[200px]'}) {
+export function Combobox({options=[], value='', icon=false, onChange=()=>{}, placeholder='', emptyItem=<>No Item found</>, searchPlaceholder='Search', className='w-[200px]'}) {
   const [open, setOpen] = React.useState(false)
 
   return (
@@ -28,7 +28,7 @@ export function Combobox({options=[], value='', icon=false, placeholder='', empt
           {icon && <ChevronsUpDown className="opacity-50" />}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[200px] p-0">
+      <PopoverContent className="w-full p-0">
         <Command>
           <CommandInput placeholder={searchPlaceholder} className="h-9" />
           <CommandList>
@@ -38,10 +38,7 @@ export function Combobox({options=[], value='', icon=false, placeholder='', empt
                 <CommandItem
                   key={item.value}
                   value={item.value}
-                  onSelect={(currentValue) => {
-                    setValue(currentValue === value ? "" : currentValue)
-                    setOpen(false)
-                  }}
+                  onSelect={(value) => {onChange(value), setOpen(false)}}
                 >
                   {item.label}
                   <Check

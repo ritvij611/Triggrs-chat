@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import CompanyLogo from './companylogo';
 
 export default function Header() {
  const [showDrawer, setShowDrawer] = useState(false);
@@ -16,18 +17,19 @@ export default function Header() {
     return(
         <>
   <header>
-    <nav className="w-full fixed font-nunito inset-x-0 top-0 z-20 bg-white shadow-sm  px-4 lg:px-6 lg:py-2.5 py-2">
+    <nav className="w-full fixed inset-x-0 top-0 z-20 bg-white shadow-sm  px-4 lg:px-6 lg:py-1.5 py-2">
         <div className="flex flex-wrap justify-between items-center mx-auto max-w-screen-xl">
-        <Link href = "/" >
-        <Image className='lg:rounded-[20px] w-[55px] h-[55px rounded-[16px] shadow-md lg:w-[60px] lg:h-[60px]' src="/images/final-logo.svg" alt="Profile Image" width={65} height={65} /></Link>
+        <Link href = "/"  className=''><CompanyLogo className='size-[60px]' /></Link>
             <div className="flex gap-2 items-center lg:order-2">
                 <Link href="/login" className="text-emerald-600 border border-emerald-600 uppercase font-medium rounded-lg text-sm px-4 lg:px-5 py-2 lg:py-2.5 mr-2">Log in</Link>
                 <Link href="/register" className="text-white hidden lg:block bg-emerald-600 uppercase font-medium rounded-lg text-sm px-4 lg:px-5 py-2 lg:py-2.5 mr-2">Get started</Link>
-                <button onClick={() => setShowDrawer(true)}  type="button" className="inline-flex items-center p-1.5 ml-1 text-sm text-gray-500 cursor-pointer rounded-lg lg:hidden bg-gray-200"><svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-6 h-6" viewBox="0 0 20 20" ><path fillRule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd"></path></svg></button>
+                <button onClick={() => setShowDrawer(true)}  type="button" className="inline-flex items-center p-1.5 ml-1 text-sm text-gray-500 cursor-pointer rounded-lg lg:hidden bg-gray-200">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-6 h-6" viewBox="0 0 20 20" ><path fillRule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd"></path></svg>
+                </button>
             </div>
             <div className="hidden justify-between items-center w-full lg:flex lg:w-auto lg:order-1" id="mobile-menu-2">
             <nav className='mx-auto w-fit mt-2'>
-        <ul className='w-fit text-base gap-x-5 font-medium flex justify-center items-center py-2'>
+        <ul className='w-fit text-base gap-x-5 font-normal flex justify-center items-center py-2'>
           <li className='relative after:w-0 after:duration-200 after:h-0.5 after:absolute after:mx-auto after:left-0 flex justify-center after:flex after:justify-center after:items-center after:right-0 after:bottom-0 after:transition-all after:bg-emerald-600 hover:after:w-full'><Link href='/about'>About</Link></li>
           <li className='relative after:w-0 after:duration-200 after:h-0.5 after:absolute after:mx-auto after:left-0 flex justify-center after:flex after:justify-center after:items-center after:right-0 after:bottom-0 after:transition-all after:bg-emerald-600 hover:after:w-full'><Link href='/#features'>Features</Link></li>
           <li className='relative after:w-0 after:duration-200 after:h-0.5 after:absolute after:mx-auto after:left-0 flex justify-center after:flex after:justify-center after:items-center after:right-0 after:bottom-0 after:transition-all after:bg-emerald-600 hover:after:w-full'><Link href = '/how-it-work' >How it Work?</Link></li>
