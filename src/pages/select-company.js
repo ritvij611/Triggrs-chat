@@ -52,10 +52,7 @@ export default function SelectCompany() {
     try {
       // Get token from cookies using a more reliable method
       const cookies = document.cookie;
-      const tokenCookie = cookies
-        .split('; ')
-        .find(row => row.startsWith('twchat='))
-        ?.split('=')[1];
+      const tokenCookie = cookies;
         
       if (!tokenCookie) {
         console.error('No twchat token found in cookies');
