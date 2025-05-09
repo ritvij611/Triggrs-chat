@@ -28,18 +28,14 @@ export function Combobox({options=[], value='', icon=false, onChange=()=>{}, pla
           {icon && <ChevronsUpDown className="opacity-50" />}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0">
+      <PopoverContent className="!w-full p-0">
         <Command>
           <CommandInput placeholder={searchPlaceholder} className="h-9" />
           <CommandList>
             <CommandEmpty>{emptyItem}</CommandEmpty>
             <CommandGroup>
               {options.map((item) => (
-                <CommandItem
-                  key={item.value}
-                  value={item.value}
-                  onSelect={(value) => {onChange(value), setOpen(false)}}
-                >
+                <CommandItem key={item.value} value={item.value} onSelect={(value) => {onChange(value), setOpen(false)}}>
                   {item.label}
                   <Check
                     className={cn(

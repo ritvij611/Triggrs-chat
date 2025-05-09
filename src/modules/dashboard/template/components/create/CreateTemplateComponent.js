@@ -11,12 +11,42 @@ import { TemplateFooterInput } from './TemplateNameInput';
 import { useResumableUpload } from '@/modules/authentication/hooks/useResumableUpload';
 import { useCreateTemplate } from '@/modules/authentication/hooks/useCreateTemplate';
 import { toast } from 'sonner';
+import { useId } from "react"
+import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { LayoutList, List } from 'lucide-react';
+import { Combobox } from '@/components/ui/combobox';
+import { TemplateLanguages } from '@/components/general/templatelanguage';
+
 
 const EmojiPicker = dynamic(() => {
     return import('emoji-picker-react');
   },
   { ssr: false }
 );
+
+export function RadioGroupList({options=[], value='', onChange=()=>{}}) {
+  // optionItem
+  return (
+    <RadioGroup className="gap-2 grid grid-cols-3" onValueChange={onChange} value={value}>
+      {/* Radio card #1 */}
+      {
+        options?.map((optionItem, i) => (
+          <div className="border-input has-data-[state=checked]:bg-emerald-600/10 has-data-[state=checked]:border-emerald-600 relative flex w-full items-start gap-2 rounded-md border p-4 shadow-xs outline-none">
+            <RadioGroupItem value={optionItem.value} id={`radioItem-${i}`} aria-describedby={`radioItem-${i}-description`} className="order-1 after:absolute after:inset-0"/>
+            <div className="flex grow items-start gap-3">
+              <div className='w-6'><LayoutList size={20} /></div>
+              <div className="grid grow gap-2">
+                <Label htmlFor={`radioItem-${i}`}>{optionItem.label}</Label>
+                <p id={`radioItem-${i}-description`} className="text-muted-foreground text-[11px]">{optionItem.description}</p>
+              </div>
+            </div>
+          </div>
+        ))
+      }
+    </RadioGroup>
+  )
+}
 
 const TemplateCreate = ({companyID}) => {
   const { createResponse, isCreateLoading, createError, handleCreate, cancelCreate } = useCreateTemplate();
@@ -585,28 +615,52 @@ const TemplateCreate = ({companyID}) => {
         <form className='max-w-[1300px] mx-auto' onSubmit={handleSubmitCreateTemplate}>
           <div className='w-full'>
             {/* 1st part of form  */}
-            <div className='flex flex-col  rounded-md bg-white gap-4 p-4 my-1 border border-gray-200 shadow-sm'>
+            <div className='flex flex-col rounded-xl bg-white gap-4 px-6 py-4 my-2 border border-gray-200 shadow-sm'>
               <div className='border-b pb-2 border-b-gray-300'>
-                <h3 className="text-sm font-semibold  text-slate-800">Category</h3>
+                <h3 className="text-lg font-semibold text-slate-800">Category</h3>
                 <p className='text-xs text-emerald-600'>Category that best describes your message template</p>
               </div>
-              <ul className="grid grid-cols-3 w-full gap-4 ">
-                <RadioList onChange={(e) => handleRadioChange(e.target.value)} title="Marketing" value="MARKETING" description="Promotions or information about your business, products or services." />
-                <RadioList onChange={(e) => handleRadioChange(e.target.value)} title="Utility" value="UTILITY" description="Messages about specific transaction, notification or customer request" />
-                <RadioList onChange={(e) => handleRadioChange(e.target.value)} title="Authentication" value="AUTHENTICATION" description="Send One Time Password for authentication or login" />
-              </ul>
+              <RadioGroupList 
+                onChange={(e) => handleRadioChange(e)} 
+                value = {templateCategory}
+                options={
+                  [
+                    {label: 'Marketing', description: 'Promotions or information about your business, products or services.', value: 'MARKETING'},
+                    {label: 'Utility', description: 'Messages about specific transaction, notification or customer request', value: 'UTILITY'},
+                    {label: 'Authentication', description: 'Send One Time Password for authentication or login', value: 'AUTHENTICATION'}
+                  ]
+                }
+              />
             </div>
 
-            <label htmlFor='template_name' className='bg-white w-full rounded-md flex flex-col gap-x-2 gap-y-1 p-4 my-1 border border-gray-200 shadow-sm'>
-              <h3 className="text-[13px] font-medium text-gray-900">Template Name</h3>
-              <div><input ref={templateNameRef} type="text" id="template_name" minLength={3} maxLength={512} className="bg-white border border-gray-400 text-gray-900 text-sm rounded-md focus:ring-emerald-600 focus:border-emerald-600 placeholder:text-gray-500 focus:outline-none focus:border block w-full p-3" /></div>
-            </label>
-            {/* <TemplateNameInput ref={templateNameRef} label="Template Name" placeholder="Enter template name" minLength={3} maxLength={512} /> */}
-            <TemplateLanguageInput language={currentLanguage} onChange={(e) => changeCurrentLanguage(e.target.value)} />
-            {/* 2nd part of form  */}
+            <div className="w-full bg-white rounded-xl p-6 my-2 border border-gray-200 shadow-sm grid grid-cols-2 gap-2">
+              <label htmlFor='template_name' className='w-full flex flex-col gap-x-2 gap-y-1 my-1'>
+                {/* <h3 className="text-[13px] font-medium text-gray-900">Template Name</h3> */}
+                <div><input ref={templateNameRef} type="text" id="template_name" placeholder='Template Name' minLength={3} maxLength={512} className="border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-emerald-600 focus:border-emerald-600 placeholder:text-gray-500 focus:outline-none focus:border block w-full p-3" /></div>
+              </label>
+              {/* <TemplateNameInput ref={templateNameRef} label="Template Name" placeholder="Enter template name" minLength={3} maxLength={512} /> */}
+              {/* <label htmlFor='language' className='w-full flex flex-col gap-x-2 gap-y-1 my-1'>
+                <div>
+                <select value={currentLanguage} onChange={(e) => changeCurrentLanguage(e.target.value)} required id="language" className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg  focus:ring-emerald-600 focus:border-emerald-600 focus:outline-none  focus:border block w-full p-3">
+                    <option value = "" disabled={true}>Select Language</option>
+                    <option value="en_US">English</option>
+                </select>
+                </div>
+              </label> */}
+              <Combobox
+                onChange={(e) => changeCurrentLanguage(e)}
+                value={currentLanguage}
+                options={TemplateLanguages}
+                className='w-full h-[45px] text-gray-600 mt-1 font-normal border-gray-300'
+                placeholder='Select Language'
+                icon={true}
+              />
+              {/* 2nd part of form  */}
+
+            </div>
 
             {/* Header Part */}
-            <div className="w-full rounded-md bg-white p-4 border border-gray-200 shadow-sm">
+            <div className="w-full rounded-md p-4 border border-gray-200 shadow-sm">
               <h3 className="text-[13px] font-semibold text-slate-800 flex gap-1  items-center">Header <span className='text-xs rounded font-medium capitalize text-slate-500'>(Optional)</span></h3>
               <p className='text-xs text-gray-600'>Add a title or choose which type of media you&apos;ll use for this header.</p>
               <div className="space-y-4 rounded-md w-full">

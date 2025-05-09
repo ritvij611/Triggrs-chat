@@ -1,29 +1,29 @@
 import Country from '@/components/general/country';
 import PropTypes from 'prop-types'
 
-export function TemplateLanguageInput({language, onChange}) {
-  return (
-    <label htmlFor='language' className='bg-white w-full rounded-md flex flex-col gap-x-2 gap-y-1 p-4 my-1 border border-gray-200 shadow-sm'>
-        <h3 className="text-[13px] font-medium text-gray-900">Language*</h3>
-        <div>
-        <select value={language} onChange={onChange} required id="language" className="bg-white border border-gray-400 text-gray-900 text-sm rounded-lg  focus:ring-emerald-600 focus:border-emerald-600 focus:outline-none  focus:border block w-full p-3">
-            <option value = "" disabled={true}></option>
-            <option value="en_US">English</option>
-        </select>
-        </div>
-    </label>
-  )
-}
+// export function TemplateLanguageInput({language, onChange}) {
+//   return (
+//     <label htmlFor='language' className='w-full flex flex-col gap-x-2 gap-y-1 my-1'>
+//         <h3 className="text-[13px] font-medium text-gray-900">Language*</h3>
+//         <div>
+//         <select value={language} onChange={onChange} required id="language" className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg  focus:ring-emerald-600 focus:border-emerald-600 focus:outline-none  focus:border block w-full p-3">
+//             <option value = "" disabled={true}></option>
+//             <option value="en_US">English</option>
+//         </select>
+//         </div>
+//     </label>
+//   )
+// }
 
-TemplateLanguageInput.propTypes = {
-  language: PropTypes.string,
-  onChange: PropTypes.func
-};
+// TemplateLanguageInput.propTypes = {
+//   language: PropTypes.string,
+//   onChange: PropTypes.func
+// };
 
-TemplateLanguageInput.defaultProps = {
-  language: 'en_US',
-  onChange: () => console.log('It will work')
-}
+// TemplateLanguageInput.defaultProps = {
+//   language: 'en_US',
+//   onChange: () => console.log('It will work')
+// }
 
 export function TemplateActionButton({quickReplies, callToActions, onClickQuickReplies, checkInputReply, checkInputCTA, showDropDown, onClick, onClickWebsiteCTA, onRemoveQR, onRemoveCTA, onClickPhoneCTA, isCtaPhone, isCtaUrl}){
 
