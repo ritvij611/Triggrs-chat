@@ -79,6 +79,7 @@ export default function SelectCompany(props) {
   //   fetchCompanies();
   // }, [props.user, router, fetchCompanies]);
 
+
   useEffect(() => {
     if (allCompanies && allCompanies.length > 0) {
       setAllCompanies(allCompanies);
