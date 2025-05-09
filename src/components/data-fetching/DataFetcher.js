@@ -41,11 +41,7 @@ function DataFetcher({
           method,
           headers: {
             'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
           },
-          cache: 'no-store',
-          credentials: 'include'
         };
         
         if (method !== "GET" && body) {

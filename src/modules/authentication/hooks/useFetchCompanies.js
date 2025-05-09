@@ -8,10 +8,6 @@ export const useFetchCompanies = () => {
   // Create a ref to store controller so we can abort later
   const controllerRef = useRef(null);
 
-  const getToken = useCallback(() => {
-    const cookie = document.cookie.split('; ').find(row => row.startsWith('twchat='));
-    return cookie ? cookie.split('=')[1] : null;
-  }, []);
 
   const fetchCompanies = useCallback(async () => {
     if (controllerRef.current) {
@@ -25,16 +21,9 @@ export const useFetchCompanies = () => {
     setError(null);
 
     try {
-      const token = getToken();
-      
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-
-      const response = await fetch('https://dev-wa-api.triggrsweb.com/api/user/companies', {
+      const response = await fetch('/api/companies', {
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         signal: controller.signal,
       });
@@ -58,7 +47,7 @@ export const useFetchCompanies = () => {
     } finally {
       setLoading(false);
     }
-  }, [getToken]);
+  }, []);
 
   const cancelOperation = () => {
     if (controllerRef.current) {
