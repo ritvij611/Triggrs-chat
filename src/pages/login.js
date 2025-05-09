@@ -69,9 +69,12 @@ const Login = (props) => {
 
   useEffect(() => {
     if (loginResponse?.message === 'User logged in successfully') {
+      toast.success(loginResponse?.message);
       router.push('/select-company');
+    } else if (loginError) {
+      toast.error(loginError);
     }
-  }, [loginResponse, router]);
+  }, [loginResponse, loginError, router]);
 
   useEffect(() => {
     if(isLoginLoading == false && (loginResponse || loginError)) {
