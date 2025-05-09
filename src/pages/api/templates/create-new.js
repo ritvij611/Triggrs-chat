@@ -16,10 +16,8 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
       },
     });
-    console.log(response.data);
-    res.status(200).json({
-      message: response?.data?.body
-    });
+    
+    res.status(200).json(response.data);
   } catch (error) {
     console.error('Error fetching data from backend:', error);
     res.status(error.response?.status || 500).json({
