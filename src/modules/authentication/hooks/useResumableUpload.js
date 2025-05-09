@@ -38,7 +38,7 @@ export const useResumableUpload = () => {
             }
 
             const result = await res.json();
-            setUploadResponse(result.data);
+            setUploadResponse(result);
         } catch (err) {
             if (err.name === 'AbortError') {
                 console.log('Request was aborted.');
