@@ -25,6 +25,7 @@ export default function SelectCompany(props) {
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [companyLoading, setCompanyLoading] = useState(false);
 
+
   useEffect(() => {
     // Check if user is authenticated
     if (!props.user) {
