@@ -7,9 +7,9 @@ export default async function handler(req, res) {
   }
 
   const environment = EnvironmentFactory.getEnvironment(process.env.STAGE);
-  const {companyid, name} = req.query;
+  const {companyID, name} = req.query;
   try {
-    const response = await axios.delete(`${environment?.config?.wa?.apiUrl}/templates/delete?companyid=${companyid}&name=${name}`,
+    const response = await axios.delete(`${environment?.config?.wa?.apiUrl}/templates/delete?companyID=${companyID}&name=${name}`,
       {
       headers: {
         'Content-Type': 'application/json',

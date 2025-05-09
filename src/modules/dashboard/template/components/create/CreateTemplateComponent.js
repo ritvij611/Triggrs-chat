@@ -8,6 +8,9 @@ import { MediaOptions, DocumentMedia, ImageMedia, LocationMedia, VideoMedia } fr
 import { useRouter } from 'next/router';
 import RadioList from '@/components/general/radiolist';
 import { TemplateFooterInput } from './TemplateNameInput';
+import { useResumableUpload } from '@/modules/authentication/hooks/useResumableUpload';
+import { useCreateTemplate } from '@/modules/authentication/hooks/useCreateTemplate';
+import { toast } from 'sonner';
 
 const EmojiPicker = dynamic(() => {
     return import('emoji-picker-react');
@@ -15,7 +18,9 @@ const EmojiPicker = dynamic(() => {
   { ssr: false }
 );
 
-const TemplateCreate = () => {
+const TemplateCreate = ({companyID}) => {
+  const { createResponse, isCreateLoading, createError, handleCreate, cancelCreate } = useCreateTemplate();
+  const { uploadResponse, isUploadLoading, uploadError, handleUpload, cancelUpload } = useResumableUpload();
   const [sessionData, setSessionData] = useState();
   const templateNameRef = useRef();
   const headerValueRef = useRef();
@@ -285,145 +290,118 @@ const TemplateCreate = () => {
 
   const addBodyVariable = () => {
     const bodyInput = bodyTextValueRef.current;
-    // if(bodyInput.value){
     const startPos = bodyInput.selectionStart;
     const endPos = bodyInput.selectionEnd;
     const newBodyValue = bodyCurrentText.substring(0, startPos) + `{{${bodyVariables.length + 1}}} ` + bodyCurrentText.substring(endPos, bodyCurrentText.length);
     setBodyCurrentText(newBodyValue);
     detectBodyVariables(newBodyValue);
     bodyInput.focus();
-    // }
   }
-  /* Body Operation Ends*/
-
-
-  // const updateToServerTemplatesApi = async (tmeplateId, templateStatus,) => { }
-
-  // template create 
+ 
   const handleSubmitCreateTemplate = async (e) => {
     e.preventDefault();
     let templateName = templateNameRef.current.value;
-    let allow_category_change = true;
-    // let headerVariableData =sampleVariableHeaderTextValue
     let components = [];
     if (!templateCategory) {
       errFormRef.current.innerHTML = 'Select Category that describes your message template';
-    } else if (!templateName) {
-      errFormRef.current.innerHTML = 'Template name can\'t be empty'
-    } else {
-      if (headerCurrentText !== '' && selectedHeader !== '' && selectedHeader=="Text") {
-        components.push({
-          "type": "HEADER",
-          "format": selectedHeader.toUpperCase(),
-          "text": headerCurrentText,
-          ...(sampleVariableHeaderTextValue !== '' ?
-            {
-              "example": {
-                "header_text": [
-                  sampleVariableHeaderTextValue
-                ]
-              }
-            }
-            : null)
-        });
-      }
-      if(selectedHeader =="Media"){
-        if(mediaValue =="Image" || mediaValue =="Video" || mediaValue =="Document"){
-          components.push({
-            "type": "HEADER",
-            "format": mediaValue.toUpperCase(),
-            "example": {
-              "header_handle": headerHandle
-            }
-          })
-        }
-      }
-      let bodyVariableValues = bodyVariables && bodyVariables.length > 0 ? bodyVariables.map((variables) => {
-        return variables.value;
-      }) : [];
+      return;
+    }
+    if (!templateName) {
+      errFormRef.current.innerHTML = "Template name can't be empty";
+      return;
+    }
+    
+    // Add HEADER
+    if (headerCurrentText && selectedHeader === "Text") {
       components.push({
-        "type": "BODY",
-        "text": bodyCurrentText,
-        ...(bodyVariables.length >= 1 ?
-          {
-            "example": {
-              "body_text": [
-                bodyVariableValues
-              ]
+        type: "HEADER",
+        format: selectedHeader.toUpperCase(),
+        text: headerCurrentText,
+        ...(sampleVariableHeaderTextValue !== ''
+          ? {
+              example: {
+                header_text: [sampleVariableHeaderTextValue],
+              },
             }
-          } : null)
+          : null),
       });
-      if (footerPart !== '') {
-        components.push({
-          "type": "FOOTER",
-          "text": footerPart
-        })
-      }
-      if (quickReplies.length > 0 || callToActions.length > 0) {
-        let buttons = [...callToActions, ...quickReplies];
-        let newButtons = buttons.map((button) => {
-          // console.log(button);
-          if (button.ctaType == 'PHONE') {
-            return ({
-              type: 'PHONE_NUMBER',
-              text: button.label,
-              phone_number: parseInt(button.countryCode.toString() + button.labelValue.toString())
-            });
-          } else if (button.ctaType == 'URL') {
-            return ({
-              type: 'URL',
-              text: button.label,
-              url: button.labelValue
-            })
-          } else {
-            return ({
-              type: 'QUICK_REPLY',
-              text: button
-            })
-          }
-        })
-        components.push({
-          "type": "BUTTONS",
-          "buttons": newButtons
-        });
-      }
-      setIsLoadingTempCreate(true);
-      let createdBy = sessionData._id;
-      let token = sessionData.access_token;
-      // let phoneId = sessionData.phone_number_id;
-      let waba_id = sessionData.waba_id;
-      // console.log(components)
-        // *****DB Save template here with fetch ***
-        // console.log(
-        //   {
-        //     "name": templateName,
-        //     "category": templateCategory,
-        //     "language": currentLanguage,
-        //     "allow_category_change": allow_category_change,
-        //     "components": components,
-        //     "createdBy": createdBy,
-        //     "waba_id": waba_id
-        //   }
-        // )
-      const templateData = await fetch(`https://wa-api.triggrsweb.com/templates/create?waba_id=${waba_id}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+    }
+    // Add MEDIA HEADER
+    if (selectedHeader === "Media" && ["Image", "Video", "Document"].includes(mediaValue)) {
+      components.push({
+        type: "HEADER",
+        format: mediaValue.toUpperCase(),
+        example: {
+          header_handle: headerHandle,
         },
-        body: JSON.stringify({
-          "name": templateName,
-          "category": templateCategory,
-          "language": currentLanguage,
-          "allow_category_change": allow_category_change,
-          "components": components,
-          "createdBy": createdBy,
-          "waba_id": waba_id
-        })
       });
-      const DBresponse = await templateData.json();
-      if (DBresponse.status == 200) {
-        setIsLoadingTempCreate(false);
+    }
+    
+    // Add BODY
+    const bodyVariableValues = bodyVariables?.length
+      ? bodyVariables.map((v) => v.value)
+      : [];
+
+    components.push({
+      type: "BODY",
+      text: bodyCurrentText,
+      ...(bodyVariables.length >= 1
+        ? {
+            example: {
+              body_text: [bodyVariableValues],
+            },
+          }
+        : null),
+    });
+
+    // Add FOOTER
+    if (footerPart) {
+      components.push({
+        type: "FOOTER",
+        text: footerPart,
+      });
+    }
+
+    // Add BUTTONS
+    if (quickReplies.length > 0 || callToActions.length > 0) {
+      const buttons = [...callToActions, ...quickReplies].map((button) => {
+        if (button.ctaType === "PHONE") {
+          return {
+            type: "PHONE_NUMBER",
+            text: button.label,
+            phone_number: parseInt(
+              button.countryCode.toString() + button.labelValue.toString()
+            ),
+          };
+        } else if (button.ctaType === "URL") {
+          return {
+            type: "URL",
+            text: button.label,
+            url: button.labelValue,
+          };
+        } else {
+          return {
+            type: "QUICK_REPLY",
+            text: button,
+          };
+        }
+      });
+
+      components.push({
+        type: "BUTTONS",
+        buttons,
+      });
+    }
+    try {
+      await handleCreate({
+        companyID,
+        name: templateName,
+        language: "en_US",
+        category: templateCategory,
+        components
+      });
+
+      if (createResponse?.message === "template added successfully") {
         errFormRef.current.innerHTML = '';
         templateNameRef.current.value = '';
         setTemplateCategory('');
@@ -432,14 +410,15 @@ const TemplateCreate = () => {
         setHeaderCurrentText('');
         setBodyCurrentText('');
         setFooterPart('');
-      } else {
-        // errFormRef.current.innerHTML = `<span className="text-red-600">${DBresponse.data.message}</span>`
-        console.log(DBresponse)
-        setIsLoadingTempCreate(false)
+        toast.success("Template Added Successfully")
+      } else if(createError){
+        toast.error(createError);
       }
-      // console.log(response)
-    }
-    }
+    } catch (error) {
+      console.error('Create Template Hook Error:', error);
+    } 
+    
+  };
       //  else if(response.status === 'REJECTED') {
       //   setIsLoadingTempCreate(false)
       //   let category = response.category;
@@ -549,49 +528,54 @@ const TemplateCreate = () => {
       const file = e.target.files[0];
       // console.log(file)
       const allowedFileTypes = ['image/jpeg', 'image/jpg', 'image/png', 'video/mp4', 'application/pdf'];
-      if (file) {
-        let maxValidSize = file.type == 'image/jpeg' || file.type == 'image/jpg' || file.type == 'image/png' 
-        ? 4 * 1024 * 1024 : 
-        file.type == 'application/pdf' || file.type == 'video/mp4'
-        ? 10 * 1024 * 1024 // 10mb
-        : 0 * 1024 * 1024;  // 0mb
-        let minValidSize = 0;  // 0mb
-        // Check if the file's MIME type is in the allowedFileTypes array
-        if (!allowedFileTypes.includes(file.type)) {
-          setFileError(`Invalid file format. Please select a valid file (JPEG, PNG, JPG, PDF OR MP4).`);
-        } else if (file.size < minValidSize || file.size > maxValidSize) {
-          setFileError(`Media Size upto 4mb is valid only`);
-        } else {
-          setFileError('');
-          // console.log(file);
-          if (file) {
-            let offset = 0;
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('access_token', globalProfileData.data.access_token);
-            const fileData = await fetch('http://localhost:8080/upload', {
-              method: "POST",
-              body: formData
-            });
-            // // application/pdf, image/jpeg, image/jpg, image/png, and video/mp4
-            const responseData = await fileData.json();
-            setHeaderHandle(responseData);
-            
-              // setSnackBarContent('Image Uploaded, Save it to upload successfully');
-              // // setUpdateData(false);
-              // setHeaderImage(responseData);
-              // setShowSnackBar(true);
-              // setTimeout(() => {
-              //   setShowSnackBar(false);
-              // }, 2200);
-          } else {
-            console.log('Select File');
-          }
-        }
-      } else {
-        setFileError(`Please Select ${mediaValue} File`);
+
+      const maxSizeByType = {
+        'image/jpeg': 4 * 1024 * 1024,
+        'image/jpg': 4 * 1024 * 1024,
+        'image/png': 4 * 1024 * 1024,
+        'application/pdf': 10 * 1024 * 1024,
+        'video/mp4': 10 * 1024 * 1024,
+      };
+
+      if (!file) {
+        setFileError(`Please select a ${mediaValue} file.`);
+        return;
       }
-    // }
+
+      if (!allowedFileTypes.includes(file.type)) {
+        setFileError('Invalid file format. Only JPEG, PNG, JPG, PDF, or MP4 are allowed.');
+        return;
+      }
+
+      const maxValidSize = maxSizeByType[file.type] || 0;
+
+      if (file.size > maxValidSize) {
+        setFileError(`File size exceeds the limit. Max allowed size for this type is ${maxValidSize / (1024 * 1024)}MB.`);
+        return;
+      }
+
+      setFileError('');
+
+      try {
+        await handleUpload({
+          companyID: companyID,
+          fileName: file.name,
+          fileLength: file.size,
+          fileType: file.type,
+          binaryData: file
+        });
+
+        if(uploadResponse?.message === "Media uploaded successfully"){
+          setHeaderHandle(uploadResponse.filehandle);
+          toast.success("Media uploaded successfully");
+        } else if(uploadError){
+          toast.error(uploadError);
+        }
+
+      } catch (error) {
+        console.error('Upload failed:', err);
+        setFileError('Failed to upload file. Please try again.');
+      }
   }
 
   return (
