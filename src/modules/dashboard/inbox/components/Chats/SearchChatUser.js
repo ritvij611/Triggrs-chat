@@ -27,7 +27,7 @@ export default function SearchChatUser({placeholder}) {
          <ul className="flex flex-col gap-y-4">
             {/* {links.map((link, index) => ( */}
               <li >
-              {/* All chats, Active chats, Open, Pending, Solved, Bloked chat */}
+              {/* All chats, Active chats, Open, Pending, Solved, Blocked chat */}
                 <Link href="/" className="text-gray-800 font-medium text-sm">All chats</Link>
               </li>
               <li >

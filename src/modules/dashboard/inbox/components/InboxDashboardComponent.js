@@ -1,11 +1,7 @@
-import React from 'react'
-import Chatview from './Chatview'
-
+import Chatview from "./Chats/Chatview";
 
 export default function InboxDashboardComponent() {
   return (
-    <div>
-      <Chatview />
-    </div>
+    <Chatview />
   )
 }

@@ -8,6 +8,7 @@ import jwt from 'jsonwebtoken'
 import ContactManagementComponent from '@/modules/dashboard/contact/components/ContactManagementComponent'
 import CampaignManagementComponent from '@/modules/dashboard/campaign/components/CampaignManagementComponent'
 import AgentManagementComponent from '@/modules/dashboard/agent/components/AgentManagementComponent'
+import { useEffect, useState } from 'react'
 
 export async function getServerSideProps(context) {
     // Fetch data from external API
@@ -51,6 +52,14 @@ export async function getServerSideProps(context) {
 
 export default function DashboardPages(props) {
   const router = useRouter();
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+
+  if(!isHydrated) return;
 
   return (
     <div className='bg-slate-50 min-h-screen'>

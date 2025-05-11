@@ -639,15 +639,6 @@ const TemplateCreate = ({companyID}) => {
                 {/* <h3 className="text-[13px] font-medium text-gray-900">Template Name</h3> */}
                 <div><input ref={templateNameRef} type="text" id="template_name" placeholder='Template Name' minLength={3} maxLength={512} className="border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-emerald-600 focus:border-emerald-600 placeholder:text-gray-500 focus:outline-none focus:border block w-full p-3" /></div>
               </label>
-              {/* <TemplateNameInput ref={templateNameRef} label="Template Name" placeholder="Enter template name" minLength={3} maxLength={512} /> */}
-              {/* <label htmlFor='language' className='w-full flex flex-col gap-x-2 gap-y-1 my-1'>
-                <div>
-                <select value={currentLanguage} onChange={(e) => changeCurrentLanguage(e.target.value)} required id="language" className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg  focus:ring-emerald-600 focus:border-emerald-600 focus:outline-none  focus:border block w-full p-3">
-                    <option value = "" disabled={true}>Select Language</option>
-                    <option value="en_US">English</option>
-                </select>
-                </div>
-              </label> */}
               <Combobox
                 onChange={(e) => changeCurrentLanguage(e)}
                 value={currentLanguage}
