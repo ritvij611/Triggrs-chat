@@ -21,7 +21,7 @@ export default async function handler(req, res) {
         }
       }
     );
-    console.log(response.data);
+    
     res.status(200).json(response.data);
   } catch (error) {
     console.error('Error fetching data from backend:', error);

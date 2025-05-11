@@ -10,7 +10,7 @@ export default function TemplateManagementComponent() {
     <>
       {
         router.query?.slug.join('/') == 'templates/create'
-        ? <CreateTemplateComponent />
+        ? <CreateTemplateComponent companyID={'6805ce5c8ceaf44cf44a9718'} />
         : <ViewTemplatesComponent />
       }
     </>

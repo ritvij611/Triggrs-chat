@@ -27,10 +27,10 @@ export const useResumableUpload = () => {
                 method: 'POST',
                 signal: controller.signal,
                 body: JSON.stringify({
-                    companyID,
-                    fileName,
-                    fileType,
-                    base64
+                    companyID: companyID,
+                    fileName: fileName,
+                    fileType: fileType,
+                    base64: base64
                 })
             });
 
@@ -40,7 +40,7 @@ export const useResumableUpload = () => {
             }
 
             const result = await res.json();
-            setUploadResponse(result.data);
+            setUploadResponse(result);
         } catch (err) {
             if (err.name === 'AbortError') {
                 console.log('Request was aborted.');

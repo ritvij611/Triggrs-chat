@@ -89,6 +89,23 @@ const TemplateCreate = ({companyID}) => {
   const [isCtaPhone, setIsCtaPhone] = useState(false);
   const [fileError, setFileError] = useState('');
 
+  useEffect(() => {
+    if(uploadResponse?.message === "Media uploaded successfully"){
+      setHeaderHandle(uploadResponse.fileHandle);
+      toast.success("Media Uploaded Successfully");
+    } else if(uploadError){
+      toast.error(uploadError);
+    }
+  },[uploadResponse,uploadError]);
+
+  useEffect(() => {
+    if(createResponse?.message === "template added successfully"){
+      toast.success("Template Added Successfully");
+    } else if(createError){
+      toast.error(createError);
+    }
+  },[createResponse,createError]);
+
   const checkInputCTAFunc = (ctaInp, index, ctaType, inputType) => {
     let cta = [...callToActions];
     cta.find((val, i) => {
@@ -595,13 +612,6 @@ const TemplateCreate = ({companyID}) => {
           fileName: file.name,
           fileType: file.type,
         });
-
-        if(uploadResponse?.message === "Media uploaded successfully"){
-          setHeaderHandle(uploadResponse.fileHandle);
-          toast.success("Media uploaded successfully");
-        } else if(uploadError){
-          toast.error(uploadError);
-        }
 
       } catch (error) {
         console.error('Upload failed:', err);

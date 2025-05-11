@@ -38,7 +38,7 @@ export const useCreateTemplate = () => {
             }
 
             const result = await res.json();
-            setCreateResponse(result.data);
+            setCreateResponse(result);
         } catch (err) {
             if (err.name === 'AbortError') {
                 console.log('Request was aborted.');
