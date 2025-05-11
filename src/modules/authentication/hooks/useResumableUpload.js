@@ -22,14 +22,16 @@ export const useResumableUpload = () => {
         setUploadResponse(null);
 
         try {
-            const { companyID, fileName, fileLength, fileType, binaryData } = query;
-            const res = await fetch(`/api/templates/resumable-upload?companyID=${companyID}&fileName=${fileName}&fileLength=${fileLength}&fileType=${fileType}`, {
+            const { companyID, base64, fileName, fileType } = query;
+            const res = await fetch(`/api/templates/resumable-upload`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
                 signal: controller.signal,
-                body: binaryData
+                body: JSON.stringify({
+                    companyID,
+                    fileName,
+                    fileType,
+                    base64
+                })
             });
 
             if (!res.ok) {
@@ -38,7 +40,7 @@ export const useResumableUpload = () => {
             }
 
             const result = await res.json();
-            setUploadResponse(result);
+            setUploadResponse(result.data);
         } catch (err) {
             if (err.name === 'AbortError') {
                 console.log('Request was aborted.');

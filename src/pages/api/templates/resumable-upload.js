@@ -5,14 +5,23 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
- 
+  
   const environment = EnvironmentFactory.getEnvironment(process.env.STAGE);
-  const {companyID, fileName, fileLength, fileType} = req.query;
+  const { fileName, fileType, companyID, base64 } = JSON.parse(req.body);
+  
+  const binaryData = Buffer.from(base64, "base64");
+  
   try {
-    const response = await axios.post(`${environment?.config?.wa?.apiUrl}/templates/mediaupload?companyID=${companyID}&fileName=${fileName}&fileLength=${fileLength}&fileType=${fileType}`,
-      req.body
+
+    const response = await axios.post(`${environment?.config?.wa?.apiUrl}/templates/mediaupload?companyID=${companyID}&fileName=${fileName}&fileType=${fileType}`,
+      binaryData,
+      {
+        headers: {
+          'Content-type': fileType
+        }
+      }
     );
-    
+    console.log(response.data);
     res.status(200).json(response.data);
   } catch (error) {
     console.error('Error fetching data from backend:', error);

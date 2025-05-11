@@ -587,16 +587,17 @@ const TemplateCreate = ({companyID}) => {
       setFileError('');
 
       try {
+        const arrayBuffer = await file.arrayBuffer();
+        const base64 = Buffer.from(arrayBuffer).toString("base64");
         await handleUpload({
-          companyID: companyID,
+          companyID,
+          base64,
           fileName: file.name,
-          fileLength: file.size,
           fileType: file.type,
-          binaryData: file
         });
 
         if(uploadResponse?.message === "Media uploaded successfully"){
-          setHeaderHandle(uploadResponse.filehandle);
+          setHeaderHandle(uploadResponse.fileHandle);
           toast.success("Media uploaded successfully");
         } else if(uploadError){
           toast.error(uploadError);
@@ -802,10 +803,11 @@ const TemplateCreate = ({companyID}) => {
             {/* Buttons Part Ends */}
             <div ref={errFormRef} className="text-sm  flex items-center px-2  text-red-600"></div>
             {
-              isLoadingTempCreate
+              isCreateLoading
                 ? <button type="submit" className="flex w-fit items-center justify-centertext-base justify-end  text-center mt-4 mb-8 bg-emerald-600 text-white py-2 px-4 rounded-lg "><span className='w-3.5 h-3.5 mr-3 animate-spin rounded-full border-2 border-white border-l-2 border-l-transparent'></span><span>Adding...</span></button>
-                :
-                <button type="submit" className='text-base justify-end  text-center mt-4 mb-8 bg-emerald-600 text-white  block py-2 px-4 rounded-lg'>Save and Submit</button>
+                : isUploadLoading ? 
+                <button type="submit" className="flex w-fit items-center justify-centertext-base justify-end  text-center mt-4 mb-8 bg-emerald-600 text-white py-2 px-4 rounded-lg "><span className='w-3.5 h-3.5 mr-3 animate-spin rounded-full border-2 border-white border-l-2 border-l-transparent'></span><span>Uploading Media...</span></button>
+                :<button type="submit" className='text-base justify-end  text-center mt-4 mb-8 bg-emerald-600 text-white  block py-2 px-4 rounded-lg'>Save and Submit</button>
             }
           </div>
 
