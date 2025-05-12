@@ -1,4 +1,7 @@
-import { useEffect, useId, useMemo, useRef, useState } from "react"
+import { use, useEffect, useId, useMemo, useRef, useState } from "react"
+import { useFetchTemplates } from "@/modules/authentication/hooks/useFetchTemplates";
+import { useDeleteTemplate } from "@/modules/authentication/hooks/useDeleteTemplate";
+import PreviewPartComponent from "./PreviewPartComponent";
 import {
   flexRender,
   getCoreRowModel,
@@ -83,11 +86,12 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { useRouter } from "next/router";
+import { toast } from "sonner";
 
 // Custom filter function for multi-column searching
 const multiColumnFilterFn = (row, columnId, filterValue) => {
   const searchableRowContent =
-    `${row.original.name} ${row.original.email}`.toLowerCase()
+    `${row.original.templateName}`.toLowerCase()
   const searchTerm = (filterValue ?? "").toLowerCase()
   return searchableRowContent.includes(searchTerm);
 }
@@ -102,97 +106,22 @@ const statusFilterFn = (
   return filterValue.includes(status);
 }
 
-const columns = [
-  {
-    id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        className={'border border-gray-400'}
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all" />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        className={'border border-gray-400'}
-        aria-label="Select row" />
-    ),
-    size: 28,
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
-    header: "Name",
-    accessorKey: "name",
-    cell: ({ row }) => (
-      <div className="font-medium">{row.getValue("name")}</div>
-    ),
-    size: 180,
-    filterFn: multiColumnFilterFn,
-    enableHiding: false,
-  },
-  {
-    header: "Email",
-    accessorKey: "email",
-    size: 220,
-  },
-  {
-    header: "Location",
-    accessorKey: "location",
-    cell: ({ row }) => (
-      <div>
-        <span className="text-lg leading-none">{row.original.flag}</span>{" "}
-        {row.getValue("location")}
-      </div>
-    ),
-    size: 180,
-  },
-  {
-    header: "Status",
-    accessorKey: "status",
-    cell: ({ row }) => (
-      <Badge
-        className={cn(row.getValue("status") === "Inactive" &&
-          "bg-muted-foreground/60 text-primary-foreground")}>
-        {row.getValue("status")}
-      </Badge>
-    ),
-    size: 100,
-    filterFn: statusFilterFn,
-  },
-  {
-    header: "Performance",
-    accessorKey: "performance",
-  },
-  {
-    header: "Balance",
-    accessorKey: "balance",
-    cell: ({ row }) => {
-      const amount = parseFloat(row.getValue("balance"))
-      const formatted = new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-      }).format(amount)
-      return formatted
-    },
-    size: 120,
-  },
-  {
-    id: "actions",
-    header: () => <span className="sr-only">Actions</span>,
-    cell: ({ row }) => <RowActions row={row} />,
-    size: 60,
-    enableHiding: false,
-  },
-]
+const getFormattedDate = (isoDate) =>{ 
+  const date = new Date(isoDate);
+  const formattedDate = date.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+  return formattedDate;
+}
 
-export default function TemplateComponent() {
-  const id = useId()
+export default function TemplateComponent({companyID}) {
+  const [data, setData] = useState([]);
+  const { allTemplates, loadingTemplates, templateError, fetchTemplates, cancelTemplatesOperation } = useFetchTemplates();
+  const { deleteResponse, isDeleteLoading, deleteError, handleDelete, cancelDelete } = useDeleteTemplate();
+  const id = useId();
+  const [templateForView, setTemplateForView] = useState({});
   const [columnFilters, setColumnFilters] = useState([])
   const [columnVisibility, setColumnVisibility] = useState({})
   const router = useRouter();
@@ -204,27 +133,221 @@ export default function TemplateComponent() {
 
   const [sorting, setSorting] = useState([
     {
-      id: "name",
+      id: "templateName",
       desc: false,
     },
   ])
 
-  const [data, setData] = useState([])
   useEffect(() => {
-    async function fetchPosts() {
-      const res = await fetch("https://res.cloudinary.com/dlzlfasou/raw/upload/users-01_fertyx.json")
-      const data = await res.json()
-      setData(data)
-    }
-    fetchPosts()
-  }, [])
+    const fetch = async () => {
+      if (companyID){
+        await fetchTemplates({companyID});
+      } 
+      
+    };
+    fetch();
+  }, [companyID]);
 
-  const handleDeleteRows = () => {
-    const selectedRows = table.getSelectedRowModel().rows
-    const updatedData = data.filter((item) => !selectedRows.some((row) => row.original.id === item.id))
-    setData(updatedData)
-    table.resetRowSelection()
+
+  useEffect(() => {
+    if(templateError){
+      toast.error(templateError);
+    }
+  }, [templateError]);
+
+  useEffect(() => {
+    if (deleteResponse?.message === "template deleted successfully") {
+      const templateName = deleteResponse.name;
+      toast.success(`Template ${templateName} Deleted Successfully`);
+      const updatedData = data.filter((item) => item.templateName !== templateName)
+      setData(updatedData);
+    } else if(deleteError){
+      toast.error(deleteError);
+    }
+  },[deleteResponse,deleteError]);
+
+  useEffect(() => {
+    if (allTemplates) setData(allTemplates);
+  }, [allTemplates]);
+
+  const decodeComponents = (components) => {
+    const headerObj = components?.find((item)=> item.type==="HEADER");
+    const bodyObj = components?.find((item)=> item.type==="BODY");
+    const footerObj = components?.find((item)=> item.type==="FOOTER");
+    const buttonsObj = components?.find((item)=> item.type==="BUTTONS") || [];
+    const headerType = headerObj?.format === "TEXT" ? "Text" : "Media";
+    const mediaType = headerObj?.format === "IMAGE" ? "Image" : headerObj?.format === "VIDEO" ? "Video" : headerObj?.format === "DOCUMENT" ? "Document" : headerObj?.format === "LOCATION" ? "Location" : "";
+    const headerPart = headerObj?.text || "";
+    const bodyPart = bodyObj?.text || "";
+    const footerPart = footerObj?.text || "";
+    const buttons = buttonsObj?.buttons || [];
+    const bodyVariableValues = bodyObj?.example?.body_text || [];
+    const headerVariableValues = headerObj?.example?.header_text || [];
+    const headerHandle = headerObj?.example?.header_handle || "";
+    let ctaItems = [];
+    let replyItems = [];
+    buttons.forEach(item => {
+      if(item.type === "PHONE_NUMBER"){
+        ctaItems.push({
+          ctaType: 'PHONE',
+          label: item.text
+        });
+      } else if(item.type === "URL"){
+        ctaItems.push({
+          ctaType: 'URL',
+          label: item.text
+        });
+      } else {
+        replyItems.push(item.text);
+      }
+    });
+
+    return {headerType, mediaType, headerPart, bodyPart, footerPart, ctaItems, replyItems, bodyVariableValues, headerVariableValues, headerHandle}
+
+  } 
+
+
+  const handleDeleteRows = async(templateName) => {
+    try{
+      await handleDelete({
+        companyID,
+        templateName
+      });
+    } catch (error) {
+      console.error('Create Template Hook Error:', error);
+    } 
   }
+
+  const handleViewRows = (components) => {
+  
+    setTemplateForView(decodeComponents(components));
+  }
+
+
+  const columns = [
+  {
+    header: "Template Name",
+    accessorKey: "templateName",
+    id:"templateName",
+    cell: ({ row }) => (
+      <div className="font-medium">{row.getValue("templateName")}</div>
+    ),
+    size: 180,
+    filterFn: multiColumnFilterFn,
+    enableHiding: false,
+  },
+  {
+    header: "Category",
+    accessorKey: "category"
+  },
+  {
+    header: "Language",
+    accessorKey: "language"
+  },
+  {
+    header: "Status",
+    accessorKey: "status",
+    cell: ({ row }) => (
+      <Badge
+        className={cn(row.getValue("status") === "PENDING" ?
+          "bg-muted-foreground/60 text-primary-foreground" :
+          row.getValue("status") === "APPROVED" ? 
+          "bg-green-100 text-green-800" :
+          "bg-red-100 text-red-800")}>
+        {row.getValue("status")}
+      </Badge>
+    ),
+    size: 100,
+    filterFn: statusFilterFn,
+  },
+  {
+    header: "Created On",
+    accessorKey: "createdAt",
+    cell: ({ row }) => (
+      <div className="font-medium">{getFormattedDate(row.getValue("createdAt"))}</div>
+    ),
+    
+  },
+  {
+    id:"delete",
+    cell: ({ row }) => (
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button className="ml-auto" variant="outline">
+            <TrashIcon className="-ms-1 opacity-60" size={16} aria-hidden="true" />
+            Delete
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <div className="flex flex-col gap-2 max-sm:items-center sm:flex-row sm:gap-4">
+            <div
+              className="flex size-9 shrink-0 items-center justify-center rounded-full border"
+              aria-hidden="true">
+              <CircleAlertIcon className="opacity-80" size={16} />
+            </div>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                Are you absolutely sure?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This template will be permanently deleted.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleDeleteRows(row.getValue("templateName"))}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    ),
+    
+  },
+  {
+    id:"components",
+    accessorKey:"components",
+    cell: ({ row }) => (
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button className="ml-auto" variaxnt="outline" >
+            <p onClick={() => handleViewRows(row.getValue("components"))}>
+              View
+            </p>
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <div className="flex flex-col gap-2 max-sm:items-center sm:flex-row sm:gap-4">
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                Template Preview
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                <PreviewPartComponent 
+                  headerType={templateForView.headerType} 
+                  mediaType={templateForView.mediaType} 
+                  headerPart={templateForView.headerPart} 
+                  bodyPart={templateForView.bodyPart} 
+                  footerPart={templateForView.footerPart} 
+                  ctaItems={templateForView.ctaItems} 
+                  replyItems={templateForView.replyItems} 
+                  bodyVariableValues={templateForView.bodyVariableValues}
+                  headerVariableValues={templateForView.headerVariableValues}
+                  headerHandle={templateForView.headerHandle}
+                  />
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Close</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    ),
+    
+  },
+]
 
   const table = useReactTable({
     data,
@@ -256,7 +379,7 @@ export default function TemplateComponent() {
     const values = Array.from(statusColumn.getFacetedUniqueValues().keys())
 
     return values.sort();
-  }, [table.getColumn("status")?.getFacetedUniqueValues()])
+  }, [table?.getColumn("status")?.getFacetedUniqueValues()])
 
   // Get counts for each status
   const statusCounts = useMemo(() => {
@@ -289,44 +412,32 @@ export default function TemplateComponent() {
   }
 
   return (
+    <>
     <div className="space-y-4">
       {/* Filters */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold">Manage Templates</h2>
         <div className="flex items-center gap-3">
-          {/* Filter by name or email */}
+          {/* Filter by name */}
           <div className="relative">
             <input
               id={`${id}-input`}
               ref={inputRef}
               className={cn(
                 "peer min-w-60 ps-9 border border-gray-300 rounded-lg py-2 text-sm focus:border-emerald-600 ",
-                Boolean(table.getColumn("name")?.getFilterValue()) && "pe-9"
+                Boolean(table.getColumn("templateName")?.getFilterValue()) && "pe-9"
               )}
               value={
-                (table.getColumn("name")?.getFilterValue() ?? "")
+                (table.getColumn("templateName")?.getFilterValue() ?? "")
               }
-              onChange={(e) => table.getColumn("name")?.setFilterValue(e.target.value)}
-              placeholder="Filter by name or email..."
+              onChange={(e) => table.getColumn("templateName")?.setFilterValue(e.target.value)}
+              placeholder="Filter by name..."
               type="text"
-              aria-label="Filter by name or email" />
+              aria-label="Filter by name" />
             <div
               className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 peer-disabled:opacity-50">
               <ListFilterIcon size={16} aria-hidden="true" />
             </div>
-            {Boolean(table.getColumn("name")?.getFilterValue()) && (
-              <button
-                className="text-muted-foreground/80 hover:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 absolute inset-y-0 end-0 flex h-full w-9 items-center justify-center rounded-e-md transition-[color,box-shadow] outline-none focus:z-10 focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
-                aria-label="Clear filter"
-                onClick={() => {
-                  table.getColumn("name")?.setFilterValue("")
-                  if (inputRef.current) {
-                    inputRef.current.focus()
-                  }
-                }}>
-                <CircleXIcon size={16} aria-hidden="true" />
-              </button>
-            )}
           </div>
           {/* Filter by status */}
           <Popover>
@@ -371,50 +482,8 @@ export default function TemplateComponent() {
               </div>
             </PopoverContent>
           </Popover>
-          {/* Delete button */}
-          {table.getSelectedRowModel().rows.length > 0 && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button className="ml-auto" variant="outline">
-                  <TrashIcon className="-ms-1 opacity-60" size={16} aria-hidden="true" />
-                  Delete
-                  <span
-                    className="bg-background text-muted-foreground/70 -me-1 inline-flex h-5 max-h-full items-center rounded border px-1 font-[inherit] text-[0.625rem] font-medium">
-                    {table.getSelectedRowModel().rows.length}
-                  </span>
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <div className="flex flex-col gap-2 max-sm:items-center sm:flex-row sm:gap-4">
-                  <div
-                    className="flex size-9 shrink-0 items-center justify-center rounded-full border"
-                    aria-hidden="true">
-                    <CircleAlertIcon className="opacity-80" size={16} />
-                  </div>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>
-                      Are you absolutely sure?
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete{" "}
-                      {table.getSelectedRowModel().rows.length} selected{" "}
-                      {table.getSelectedRowModel().rows.length === 1
-                        ? "row"
-                        : "rows"}
-                      .
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                </div>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteRows}>
-                    Delete
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-          {/* Add user button */}
+          
+          {/* Add template button */}
           <button onClick={() => router.push('/dashboard/templates/create')} className="ml-auto cursor-pointer py-2 px-4 rounded-lg border border-emerald-600 font-medium text-sm flex items-center gap-x-2 text-white bg-emerald-600"><PlusIcon size={16} aria-hidden="true" /><span className="-mt-px">Create Template</span></button>
         </div>
       </div>
@@ -465,24 +534,44 @@ export default function TemplateComponent() {
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {!loadingTemplates && table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                <TableRow
+                  key={row.id}
+                  className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
+                >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="last:py-0">
+                    <TableCell
+                      key={cell.id}
+                      className="py-4 px-4 text-sm text-gray-700"
+                    >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
                 </TableRow>
               ))
+            ) : !loadingTemplates ? (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length + 1}
+                  className="h-24 text-center text-gray-500"
+                >
+                  No results.
+                </TableCell>
+              </TableRow>
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No results.
+                <TableCell
+                  colSpan={columns.length + 1}
+                  className="h-24 text-center"
+                >
+                  <span className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-gray-300 border-t-transparent inline-block"></span>
+                  Loading...
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
+
         </Table>
       </div>
       {/* Pagination */}
@@ -589,6 +678,7 @@ export default function TemplateComponent() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 

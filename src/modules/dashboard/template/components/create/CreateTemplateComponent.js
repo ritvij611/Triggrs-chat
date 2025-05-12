@@ -59,6 +59,7 @@ const TemplateCreate = ({companyID}) => {
   const errFormRef = useRef();
   const [globalProfileData, setGlobalProfileData] = useState();
   const [currentLanguage, setCurrentLanguage] = useState('');
+  const [currentLanguageLabel, setCurrentLanguageLabel] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [templateCategory, setTemplateCategory] = useState('');
   const [isLoadingTempCreate, setIsLoadingTempCreate] = useState(false);
@@ -357,6 +358,10 @@ const TemplateCreate = ({companyID}) => {
       errFormRef.current.innerHTML = "Template name can't be empty";
       return;
     }
+    if (!currentLanguage) {
+      errFormRef.current.innerHTML = "Select the language of your template";
+      return;
+    }
     
     // Add HEADER
     if (headerCurrentText && selectedHeader === "Text") {
@@ -440,27 +445,15 @@ const TemplateCreate = ({companyID}) => {
       });
     }
     try {
+      console.log(components);
       await handleCreate({
         companyID,
         name: templateName,
-        language: "en_US",
+        language: currentLanguage,
+        label: currentLanguageLabel,
         category: templateCategory,
         components
       });
-
-      if (createResponse?.message === "template added successfully") {
-        errFormRef.current.innerHTML = '';
-        templateNameRef.current.value = '';
-        setTemplateCategory('');
-        setCurrentLanguage('');
-        setSelectedHeader('');
-        setHeaderCurrentText('');
-        setBodyCurrentText('');
-        setFooterPart('');
-        toast.success("Template Added Successfully")
-      } else if(createError){
-        toast.error(createError);
-      }
     } catch (error) {
       console.error('Create Template Hook Error:', error);
     } 
@@ -528,9 +521,13 @@ const TemplateCreate = ({companyID}) => {
     setTemplateCategory(checkedVal);
   };
 
+  const getLanguageLabel = (value) => {
+    const match = TemplateLanguages.find(lang => lang.value === value);
+    return match ? match.label : 'Unknown';
+  }
   const changeCurrentLanguage = (language) => {
     setCurrentLanguage(language);
-    // console.log(language)
+    setCurrentLanguageLabel(getLanguageLabel(language));
   }
 
 
@@ -656,6 +653,7 @@ const TemplateCreate = ({companyID}) => {
                 className='w-full h-[45px] text-gray-600 mt-1 font-normal border-gray-300'
                 placeholder='Select Language'
                 icon={true}
+                required={true}
               />
               {/* 2nd part of form  */}
 
