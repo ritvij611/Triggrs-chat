@@ -26,7 +26,8 @@ import {
   ListFilterIcon,
   PlusIcon,
   TrashIcon,
-  EyeIcon
+  EyeIcon,
+  RefreshCcw
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -88,6 +89,7 @@ import {
 } from "@/components/ui/table"
 import { useRouter } from "next/router";
 import { toast } from "sonner";
+import { useSyncTemplate } from "@/modules/authentication/hooks/useSyncTemplate";
 
 // Custom filter function for multi-column searching
 const multiColumnFilterFn = (row, columnId, filterValue) => {
@@ -120,8 +122,10 @@ const getFormattedDate = (isoDate) =>{
 export default function TemplateComponent({companyID}) {
   const [data, setData] = useState([]);
   const [deletedTemplate, setDeletedTemplate] = useState('');
+  const [syncTemplate, setSyncTemplate] = useState('');
   const { allTemplates, loadingTemplates, templateError, fetchTemplates, cancelTemplatesOperation } = useFetchTemplates();
   const { deleteResponse, isDeleteLoading, deleteError, handleDelete, cancelDelete } = useDeleteTemplate();
+  const { syncResponse, isSyncLoading, syncError, handleSync, cancelSync } = useSyncTemplate();
   const id = useId();
   const [columnFilters, setColumnFilters] = useState([])
   const [columnVisibility, setColumnVisibility] = useState({})
@@ -172,6 +176,21 @@ export default function TemplateComponent({companyID}) {
     if (allTemplates) setData(allTemplates);
   }, [allTemplates]);
 
+  useEffect(() => {
+    if (syncResponse?.message === "Templates updated successfully") {
+      toast.success(`Template ${syncTemplate} Updated Successfully`);
+      const updatedData = data?.forEach((item) => {
+        if(item.templateName === syncTemplate) 
+          item = (syncResponse.templates)[0];
+      });
+      setData(updatedData);
+      setSyncTemplate('');
+    } else if(syncError){
+      toast.error(syncError);
+      setSyncTemplate('');
+    }
+  },[syncResponse,syncError]);
+
   const decodeComponents = (components) => {
     const headerObj = components?.find((item)=> item.type==="HEADER");
     const bodyObj = components?.find((item)=> item.type==="BODY");
@@ -185,7 +204,7 @@ export default function TemplateComponent({companyID}) {
     const buttons = buttonsObj?.buttons || [];
     const bodyVariableValues = bodyObj?.example?.body_text || [];
     const headerVariableValues = headerObj?.example?.header_text || [];
-    const headerHandle = headerObj?.example?.header_handle || "";
+    const headerHandle = headerObj?.example?.header_handle || [];
     let ctaItems = [];
     let replyItems = [];
     buttons.forEach(item => {
@@ -213,6 +232,19 @@ export default function TemplateComponent({companyID}) {
     try{
       setDeletedTemplate(templateName);
       await handleDelete({
+        companyID,
+        templateName
+      });
+    } catch (error) {
+      console.error('Create Template Hook Error:', error);
+    } 
+  }
+
+  const handleSyncRows = async(templateName) => {
+    try{
+      console.log(templateName)
+      setSyncTemplate(templateName);
+      await handleSync({
         companyID,
         templateName
       });
@@ -272,9 +304,6 @@ export default function TemplateComponent({companyID}) {
     cell: ({ row }) => (
       <AlertDialog>
         <AlertDialogTrigger asChild>
-          
-          
-          
           <button disabled={row.getValue("templateName") === deletedTemplate} className="ml-auto flex items-center gap-1">
             {row.getValue("templateName") === deletedTemplate ?
             <span className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-gray-300 border-t-transparent inline-block"></span>
@@ -306,6 +335,23 @@ export default function TemplateComponent({companyID}) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    ),
+    
+  },
+  {
+    header: "",
+    id: "sync",
+    accessorKey: "templateName",
+    cell: ({ row }) => (
+      <button 
+        disabled={row.getValue("templateName") === syncTemplate} 
+        onClick={()=>handleSyncRows(row.getValue("templateName"))}
+        className="ml-auto flex items-center gap-1">
+            {row.getValue("templateName") === syncTemplate ?
+            <span className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-gray-300 border-t-transparent inline-block"></span>
+            :(<><RefreshCcw className="-ms-1 opacity-60" size={16} aria-hidden="true" />
+            Sync</>)}
+          </button>
     ),
     
   },
