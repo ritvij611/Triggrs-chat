@@ -121,7 +121,6 @@ export default function TemplateComponent({companyID}) {
   const { allTemplates, loadingTemplates, templateError, fetchTemplates, cancelTemplatesOperation } = useFetchTemplates();
   const { deleteResponse, isDeleteLoading, deleteError, handleDelete, cancelDelete } = useDeleteTemplate();
   const id = useId();
-  const [templateForView, setTemplateForView] = useState({});
   const [columnFilters, setColumnFilters] = useState([])
   const [columnVisibility, setColumnVisibility] = useState({})
   const router = useRouter();
@@ -218,11 +217,6 @@ export default function TemplateComponent({companyID}) {
     } 
   }
 
-  const handleViewRows = (components) => {
-  
-    setTemplateForView(decodeComponents(components));
-  }
-
 
   const columns = [
   {
@@ -310,11 +304,9 @@ export default function TemplateComponent({companyID}) {
     accessorKey:"components",
     cell: ({ row }) => (
       <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button className="ml-auto" variaxnt="outline" >
-            <p onClick={() => handleViewRows(row.getValue("components"))}>
-              View
-            </p>
+        <AlertDialogTrigger>
+          <Button className="ml-auto" variant="outline">
+            View
           </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
@@ -325,16 +317,8 @@ export default function TemplateComponent({companyID}) {
               </AlertDialogTitle>
               <AlertDialogDescription>
                 <PreviewPartComponent 
-                  headerType={templateForView.headerType} 
-                  mediaType={templateForView.mediaType} 
-                  headerPart={templateForView.headerPart} 
-                  bodyPart={templateForView.bodyPart} 
-                  footerPart={templateForView.footerPart} 
-                  ctaItems={templateForView.ctaItems} 
-                  replyItems={templateForView.replyItems} 
-                  bodyVariableValues={templateForView.bodyVariableValues}
-                  headerVariableValues={templateForView.headerVariableValues}
-                  headerHandle={templateForView.headerHandle}
+                  components
+                  {...decodeComponents(row.getValue("components"))}
                   />
               </AlertDialogDescription>
             </AlertDialogHeader>
