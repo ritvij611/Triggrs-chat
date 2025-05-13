@@ -1,11 +1,148 @@
-import Image from 'next/image'
-import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import CompanyLogo from '@/components/general/companylogo';
+import { BoltIcon, Building, LogOut, UserCircle2Icon} from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger} from "@/components/ui/dropdown-menu"
+import { useState } from "react"
+import { BellIcon } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import Image from 'next/image';
+
+const initialNotifications = [
+  {
+    id: 1,
+    image: "/avatar-80-01.jpg",
+    user: "Chris Tompson",
+    action: "requested review on",
+    target: "PR #42: Feature implementation",
+    timestamp: "15 minutes ago",
+    unread: true,
+  },
+  {
+    id: 2,
+    image: "/avatar-80-02.jpg",
+    user: "Emma Davis",
+    action: "shared",
+    target: "New component library",
+    timestamp: "45 minutes ago",
+    unread: true,
+  },
+  {
+    id: 3,
+    image: "/avatar-80-03.jpg",
+    user: "James Wilson",
+    action: "assigned you to",
+    target: "API integration task",
+    timestamp: "4 hours ago",
+    unread: false,
+  },
+  {
+    id: 4,
+    image: "/avatar-80-04.jpg",
+    user: "Alex Morgan",
+    action: "replied to your comment in",
+    target: "Authentication flow",
+    timestamp: "12 hours ago",
+    unread: false,
+  },
+  {
+    id: 5,
+    image: "/avatar-80-05.jpg",
+    user: "Sarah Chen",
+    action: "commented on",
+    target: "Dashboard redesign",
+    timestamp: "2 days ago",
+    unread: false,
+  },
+  {
+    id: 6,
+    image: "/avatar-80-06.jpg",
+    user: "Miky Derya",
+    action: "mentioned you in",
+    target: "Origin UI open graph image",
+    timestamp: "2 weeks ago",
+    unread: false,
+  },
+]
+
+function Dot({ className }) {
+  return (<svg width="6" height="6" fill="currentColor" viewBox="0 0 6 6" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true"><circle cx="3" cy="3" r="3" /></svg>)
+}
+
+export function NotificationComponent() {
+  const [notifications, setNotifications] = useState(initialNotifications)
+  const unreadCount = notifications.filter((n) => n.unread).length
+
+  const handleMarkAllAsRead = () => {
+    setNotifications(
+      notifications.map((notification) => ({
+        ...notification,
+        unread: false,
+      }))
+    )
+  }
+
+  const handleNotificationClick = (id) => {
+    setNotifications(
+      notifications.map((notification) =>
+        notification.id === id
+          ? { ...notification, unread: false }
+          : notification
+      )
+    )
+  }
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button size="icon" className="relative flex rounded-full hover:bg-gray-100 p-2 items-center" aria-label="Open notifications">
+          <BellIcon size={20} aria-hidden="true" />
+          {unreadCount > 0 && (<Badge className="absolute text-xs -top-1 left-full min-w-5 -translate-x-[80%] px-px">{unreadCount > 99 ? "99+" : unreadCount}</Badge>)}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80 p-1" align='end'>
+        <div className="flex items-baseline justify-between gap-4 px-3 py-2">
+          <div className="text-sm font-semibold">Notifications</div>
+          {unreadCount > 0 && (
+            <button className="text-xs font-medium hover:underline" onClick={handleMarkAllAsRead}>
+              Mark all as read
+            </button>
+          )}
+        </div>
+        <div role="separator" aria-orientation="horizontal" className="bg-border -mx-1 my-1 h-px"></div>
+        {notifications.map((notification) => (
+          <div key={notification.id} className="hover:bg-accent rounded-md px-3 py-2 text-sm transition-colors">
+            <div className="relative flex items-start gap-3 pe-3">
+              <Image className="size-9 rounded-md" src={notification.image} width={32} height={32} alt={notification.user}/>
+              <div className="flex-1 space-y-1">
+                <button className="text-foreground/80 text-left after:absolute after:inset-0" onClick={() => handleNotificationClick(notification.id)}>
+                  <span className="text-foreground font-medium hover:underline">{notification.user}</span>{" "}
+                  {notification.action}{" "}
+                  <span className="text-foreground font-medium hover:underline">
+                    {notification.target}
+                  </span>
+                  .
+                </button>
+                <div className="text-muted-foreground text-xs">
+                  {notification.timestamp}
+                </div>
+              </div>
+              {notification.unread && (
+                <div className="absolute end-0 self-center">
+                  <Dot />
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </PopoverContent>
+    </Popover>
+  )
+}
 
 export default function DashboardHeader({loginData}) {
-  const [showDrop, setShowDrop] = useState(false);
   const router = useRouter();
 
   return (
@@ -22,51 +159,39 @@ export default function DashboardHeader({loginData}) {
             <li className='hover:text-emerald-700 hover:bg-emerald-700/10 px-2 py-1.5 rounded-md'><Link href="/dashboard/agents">Agents</Link></li>
         </ul>
           <nav className="bg-white w-full flex justify-end items-center lg:px-4 py-0.5">
-            <ul className="relative flex flex-wrap justify-end gap-x-5 text-slate-800 items-center">
-              <li><button className='flex gap-2 text-sm hover:bg-gray-100 justify-center items-center w-10 h-10 rounded-md' onClick={() => alert(true)}><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-6 hover:bg-transparent"><path strokeLinecap="round" strokeLinejoin="round" style={{ background: 'transparent' }} d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0M3.124 7.5A8.969 8.969 0 015.292 3m13.416 0a8.969 8.969 0 012.168 4.5" /></svg></button></li>
+            <ul className="relative flex flex-wrap justify-end gap-x-2 text-slate-800 items-center">
+              <li><NotificationComponent /></li>
               {
                 !(loginData)
                 ? <li><Link href = "/login" className="border border-emerald-600 text-emerald-600 bg-white hover:bg-gradient-to-br from-emerald-600 text-sm font-medium via-emerald-500 to-emerald-700 hover:text-white rounded-lg py-2 px-6" >Login</Link></li>
                 : <li>
-                <button onClick={() => setShowDrop(!showDrop)} className="flex hover:bg-gray-100 p-1.5 rounded-md items-center gap-2 cursor-pointer">
-                <div className="relative">
-                  {/* <Image className="object-cover w-9 h-9 rounded-full outline-2 outline-emerald-600 ring-2 ring-white border-4 border-white" src="/images/pro.png" alt="Profile Image" width={100} height={100} /> */}
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-7 h-7"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
-                  <span className="h-2 w-2 rounded-full bg-emerald-500 absolute right-1 ring-1 ring-white bottom-0"></span>
-                </div>
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <h2 className="text-sm cursor-pointer font-semibold text-gray-800">{loginData?.firstName} {loginData?.lastName}</h2>
-                  </div>
-                  <p className="text-gray-600 text-left text-xs">{loginData?.phoneNumber}</p>
-                </div>
-                </button>
-                {
-                  showDrop 
-                  ? <div className='absolute z-10 top-[51px] right-0 bg-white p-2 shadow-sm w-40 rounded-b-md'>
-                    <ul className='w-full text-sm'>
-                      <li className='w-full mb-2 pb-2 border-b border-b-gray-300'>
-                      <div className='w-full flex items-center justify-start gap-x-2'>
-                        <span className='text-green-600'><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></span>
-                        <div className='flex-col flex'>
-                          <p className='uppercase font-bold text-sm'>Connected</p>
-                          <p className='text-xs text-gray-600'>Platform is healthy</p>
-                        </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex hover:bg-gray-100 p-1.5 rounded-md items-center gap-2 cursor-pointer">
+                    <div className="relative">
+                      {/* <Image className="object-cover w-9 h-9 rounded-full outline-2 outline-emerald-600 ring-2 ring-white border-4 border-white" src="/images/pro.png" alt="Profile Image" width={100} height={100} /> */}
+                      <UserCircle2Icon size={32} strokeWidth={1.2} aria-hidden="true" />
+                      <span className="h-2 w-2 rounded-full bg-emerald-500 absolute right-1 ring-1 ring-white bottom-0"></span>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <h2 className="text-sm cursor-pointer font-semibold text-gray-800">{loginData?.firstName} {loginData?.lastName}</h2>
                       </div>
-                      </li>
-                      <li className='w-full'><button className='p-2 hover:bg-gray-50 block rounded-md w-full text-left' onClick={() => {router.push('/dashboard/profile'), setShowDrop(false)}}>Edit Profile</button></li>
-                      <li className='w-full'><button className='p-2 hover:bg-gray-50 block rounded-md w-full text-left' onClick={() => {router.push('/dashboard/profile'), setShowDrop(false)}}>Manage Number</button></li>
-                      <li className='w-full'><button className='p-2 hover:bg-gray-50 block rounded-md w-full text-left' onClick={() => {router.push('/dashboard/profile'), setShowDrop(false)}}>Manage WABA</button></li>
-                      <li className='w-full'><button className='p-2 hover:bg-gray-50 rounded-md text-left w-full text-red-600' onClick={() => userLogout()}>Logout</button></li>
-                    </ul>
-                  </div> 
-                  : <></>
-                }
-                {
-                  showDrop 
-                  ? <div className='fixed inset-0 w-full h-screen' onClick={() => setShowDrop(false)}></div>
-                  : <></>
-                }
+                      <p className="text-gray-600 text-left text-xs">{loginData?.phoneNumber}</p>
+                    </div>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuGroup>
+                      <DropdownMenuItem><BoltIcon size={14} aria-hidden="true" />Edit Profile</DropdownMenuItem>
+                      <DropdownMenuItem><Building size={14} aria-hidden="true" />Manage Organizations</DropdownMenuItem>
+                    </DropdownMenuGroup>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuGroup>
+                      <DropdownMenuItem variant="destructive"><LogOut size={16} aria-hidden="true" />Logout</DropdownMenuItem>
+                    </DropdownMenuGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </li>
               }
             </ul>

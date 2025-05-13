@@ -6,12 +6,12 @@ import { useRouter } from "next/router";
 import TemplateTableCards from "./TemplateTableCards";
 import TemplateComponent from "./TemplateComponent";
 
-export default function ViewTemplatesComponent(){
+export default function ViewTemplatesComponent({companyID}){
 
 
     return (
         <div className="max-w-6xl mx-auto pt-4">
-           <TemplateComponent />
+           <TemplateComponent companyID={companyID} />
         </div>
     )
 
