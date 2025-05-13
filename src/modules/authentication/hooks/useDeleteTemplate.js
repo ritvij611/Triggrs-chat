@@ -7,7 +7,7 @@ export const useDeleteTemplate = () => {
 
     const controllerRef = useRef(null);
 
-    const handleDelete = useCallback(async ({ companyID, name }) => {
+    const handleDelete = useCallback(async ({ companyID, templateName }) => {
         if (controllerRef.current) {
             controllerRef.current.abort();
         }
@@ -21,7 +21,7 @@ export const useDeleteTemplate = () => {
 
         try {
             const res = await fetch(
-                `/api/templates/delete?companyID=${companyID}&name=${encodeURIComponent(name)}`,
+                `/api/templates/delete?companyID=${companyID}&name=${encodeURIComponent(templateName)}`,
                 {
                     method: 'DELETE',
                     signal: controller.signal
@@ -41,6 +41,7 @@ export const useDeleteTemplate = () => {
             }
 
             const result = await res.json();
+            console.log(result)
             setDeleteResponse(result);
         } catch (err) {
             if (err.name === 'AbortError') {

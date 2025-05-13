@@ -34,11 +34,12 @@ export const useCreateTemplate = () => {
 
             if (!res.ok) {
                 const errorData = await res.json().catch(() => ({}));
-                throw errorData?.message || 'Failed to Create';
+                
+                throw errorData?.details?.message || 'Failed to Create';
             }
 
             const result = await res.json();
-            setCreateResponse(result.data);
+            setCreateResponse(result);
         } catch (err) {
             if (err.name === 'AbortError') {
                 console.log('Request was aborted.');
