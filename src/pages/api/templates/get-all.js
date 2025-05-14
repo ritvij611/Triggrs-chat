@@ -7,9 +7,9 @@ export default async function handler(req, res) {
     }
 
     const environment = EnvironmentFactory.getEnvironment(process.env.STAGE);
-    const {companyID} = req.query;
+    const {companyID, index, limit, fields} = req.query;
     try {
-        const response = await axios.get(`${environment?.config?.wa?.apiUrl}/templates/get-all?companyID=${companyID}`);
+        const response = await axios.get(`${environment?.config?.wa?.apiUrl}/templates?companyID=${companyID}&limit=${limit||10}&index=${index||0}&fileds=${fields||''}`);
         
         res.status(200).json(response.data);
     } catch (error) {

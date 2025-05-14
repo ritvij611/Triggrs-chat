@@ -105,7 +105,7 @@ const statusFilterFn = (
   filterValue
 ) => {
   if (!filterValue?.length) return true
-  const status = row.getValue(columnId)
+  const status = row?.getValue(columnId)
   return filterValue.includes(status);
 }
 
@@ -121,9 +121,11 @@ const getFormattedDate = (isoDate) =>{
 
 export default function TemplateComponent({companyID}) {
   const [data, setData] = useState([]);
+  const visitedPagesRef = useRef(new Set());
+  const totalCountRef = useRef(0);
   const [deletedTemplate, setDeletedTemplate] = useState('');
   const [syncTemplate, setSyncTemplate] = useState('');
-  const { allTemplates, loadingTemplates, templateError, fetchTemplates, cancelTemplatesOperation } = useFetchTemplates();
+  const { allTemplates, totalCount, loadingTemplates, templateError, fetchTemplates, cancelTemplatesOperation } = useFetchTemplates();
   const { deleteResponse, isDeleteLoading, deleteError, handleDelete, cancelDelete } = useDeleteTemplate();
   const { syncResponse, isSyncLoading, syncError, handleSync, cancelSync } = useSyncTemplate();
   const id = useId();
@@ -141,17 +143,30 @@ export default function TemplateComponent({companyID}) {
       id: "templateName",
       desc: false,
     },
-  ])
+  ]);
+
+  const paginatedData = useMemo(() => {
+    const start = pagination.pageIndex * pagination.pageSize;
+    const end = start + pagination.pageSize;
+    return data.slice(start, end);
+  }, [data, pagination.pageIndex, pagination.pageSize]);
 
   useEffect(() => {
     const fetch = async () => {
-      if (companyID){
-        await fetchTemplates({companyID});
-      } 
-      
+      const currentIndex = pagination.pageIndex;
+
+      if (companyID && !visitedPagesRef.current.has(currentIndex)) {
+        await fetchTemplates({
+          companyID,
+          index: currentIndex,
+          limit: pagination.pageSize,
+          fields: "templateName,components,category,language,createdAt",
+        });
+        visitedPagesRef.current.add(currentIndex);
+      }
     };
     fetch();
-  }, [companyID]);
+  }, [pagination.pageIndex, pagination.pageSize, companyID]);
 
 
   useEffect(() => {
@@ -163,8 +178,9 @@ export default function TemplateComponent({companyID}) {
   useEffect(() => {
     if (deleteResponse?.message === "template deleted successfully") {
       toast.success(`Template ${deletedTemplate} Deleted Successfully`);
-      const updatedData = data.filter((item) => item.templateName !== deletedTemplate)
+      const updatedData = data.filter((item) => item.templateName !== deletedTemplate);
       setData(updatedData);
+      totalCountRef.current = totalCountRef.current - 1;
       setDeletedTemplate('');
     } else if(deleteError){
       toast.error(deleteError);
@@ -173,23 +189,31 @@ export default function TemplateComponent({companyID}) {
   },[deleteResponse,deleteError]);
 
   useEffect(() => {
-    if (allTemplates) setData(allTemplates);
+    if (allTemplates) {
+      setData((prev) => [...prev, ...allTemplates]);
+      totalCountRef.current = totalCount;
+    }
   }, [allTemplates]);
 
   useEffect(() => {
     if (syncResponse?.message === "Templates updated successfully") {
       toast.success(`Template ${syncTemplate} Updated Successfully`);
-      const updatedData = data?.forEach((item) => {
-        if(item.templateName === syncTemplate) 
-          item = (syncResponse.templates)[0];
+
+      const updatedData = data?.map((item) => {
+        if (item.templateName === syncTemplate) {
+          return syncResponse.templates[0]; 
+        }
+        return item; 
       });
-      setData(updatedData);
+
+      setData(updatedData); 
       setSyncTemplate('');
-    } else if(syncError){
+    } else if (syncError) {
       toast.error(syncError);
       setSyncTemplate('');
     }
-  },[syncResponse,syncError]);
+  }, [syncResponse, syncError]);
+
 
   const decodeComponents = (components) => {
     const headerObj = components?.find((item)=> item.type==="HEADER");
@@ -242,7 +266,6 @@ export default function TemplateComponent({companyID}) {
 
   const handleSyncRows = async(templateName) => {
     try{
-      console.log(templateName)
       setSyncTemplate(templateName);
       await handleSync({
         companyID,
@@ -260,7 +283,7 @@ export default function TemplateComponent({companyID}) {
     accessorKey: "templateName",
     id:"templateName",
     cell: ({ row }) => (
-      <div className="font-medium">{row.getValue("templateName")}</div>
+      <div className="font-medium">{row?.getValue("templateName")}</div>
     ),
     size: 180,
     filterFn: multiColumnFilterFn,
@@ -279,12 +302,12 @@ export default function TemplateComponent({companyID}) {
     accessorKey: "status",
     cell: ({ row }) => (
       <Badge
-        className={cn(row.getValue("status") === "PENDING" ?
+        className={cn(row?.getValue("status") === "PENDING" ?
           "bg-muted-foreground/60 text-primary-foreground" :
-          row.getValue("status") === "APPROVED" ? 
+          row?.getValue("status") === "APPROVED" ? 
           "bg-green-100 text-green-800" :
           "bg-red-100 text-red-800")}>
-        {row.getValue("status")}
+        {row?.getValue("status")}
       </Badge>
     ),
     size: 100,
@@ -294,7 +317,7 @@ export default function TemplateComponent({companyID}) {
     header: "Created On",
     accessorKey: "createdAt",
     cell: ({ row }) => (
-      <div className="font-medium">{getFormattedDate(row.getValue("createdAt"))}</div>
+      <div className="font-medium">{getFormattedDate(row?.getValue("createdAt"))}</div>
     ),
     
   },
@@ -304,8 +327,8 @@ export default function TemplateComponent({companyID}) {
     cell: ({ row }) => (
       <AlertDialog>
         <AlertDialogTrigger asChild>
-          <button disabled={row.getValue("templateName") === deletedTemplate} className="ml-auto flex items-center gap-1">
-            {row.getValue("templateName") === deletedTemplate ?
+          <button disabled={row?.getValue("templateName") === deletedTemplate} className="ml-auto flex items-center gap-1">
+            {row?.getValue("templateName") === deletedTemplate ?
             <span className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-gray-300 border-t-transparent inline-block"></span>
             :(<><TrashIcon className="-ms-1 opacity-60" size={16} aria-hidden="true" />
             Delete</>)}
@@ -329,7 +352,7 @@ export default function TemplateComponent({companyID}) {
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => handleDeleteRows(row.getValue("templateName"))}>
+            <AlertDialogAction onClick={() => handleDeleteRows(row?.getValue("templateName"))}>
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -344,10 +367,10 @@ export default function TemplateComponent({companyID}) {
     accessorKey: "templateName",
     cell: ({ row }) => (
       <button 
-        disabled={row.getValue("templateName") === syncTemplate} 
-        onClick={()=>handleSyncRows(row.getValue("templateName"))}
+        disabled={row?.getValue("templateName") === syncTemplate} 
+        onClick={()=>handleSyncRows(row?.getValue("templateName"))}
         className="ml-auto flex items-center gap-1">
-            {row.getValue("templateName") === syncTemplate ?
+            {row?.getValue("templateName") === syncTemplate ?
             <span className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-gray-300 border-t-transparent inline-block"></span>
             :(<><RefreshCcw className="-ms-1 opacity-60" size={16} aria-hidden="true" />
             Sync</>)}
@@ -376,7 +399,7 @@ export default function TemplateComponent({companyID}) {
               <AlertDialogDescription>
                 <PreviewPartComponent 
                   components
-                  {...decodeComponents(row.getValue("components"))}
+                  {...decodeComponents(row?.getValue("components"))}
                   />
               </AlertDialogDescription>
             </AlertDialogHeader>
@@ -392,51 +415,50 @@ export default function TemplateComponent({companyID}) {
 ]
 
   const table = useReactTable({
-    data,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    onSortingChange: setSorting,
-    enableSortingRemoval: false,
-    getPaginationRowModel: getPaginationRowModel(),
-    onPaginationChange: setPagination,
-    onColumnFiltersChange: setColumnFilters,
-    onColumnVisibilityChange: setColumnVisibility,
-    getFilteredRowModel: getFilteredRowModel(),
-    getFacetedUniqueValues: getFacetedUniqueValues(),
-    state: {
-      sorting,
-      pagination,
-      columnFilters,
-      columnVisibility,
-    },
-  })
+  data,
+  columns,
+  getCoreRowModel: getCoreRowModel(),
+  getSortedRowModel: getSortedRowModel(),
+  getFilteredRowModel: getFilteredRowModel(),
+  getFacetedUniqueValues: getFacetedUniqueValues(),
+  onSortingChange: setSorting,
+  onPaginationChange: setPagination,
+  onColumnFiltersChange: setColumnFilters,
+  onColumnVisibilityChange: setColumnVisibility,
+  pageCount: Math.ceil(totalCountRef.current / pagination.pageSize), 
+  state: {
+    sorting,
+    pagination,
+    columnFilters,
+    columnVisibility,
+  },
+});
 
-  // Get unique status values
-  const uniqueStatusValues = useMemo(() => {
-    const statusColumn = table.getColumn("status")
-
-    if (!statusColumn) return []
-
-    const values = Array.from(statusColumn.getFacetedUniqueValues().keys())
-
-    return values.sort();
-  }, [table?.getColumn("status")?.getFacetedUniqueValues()])
 
   // Get counts for each status
   const statusCounts = useMemo(() => {
-    const statusColumn = table.getColumn("status")
+    const statusColumn = table?.getColumn("status")
     if (!statusColumn) return new Map();
-    return statusColumn.getFacetedUniqueValues();
-  }, [table.getColumn("status")?.getFacetedUniqueValues()])
+    return statusColumn?.getFacetedUniqueValues();
+  }, [table?.getColumn("status")?.getFacetedUniqueValues()])
+
+  // Get unique status values
+  const uniqueStatusValues = useMemo(() => {
+    if(table?.getColumn("status")){
+      const statusColumn = table?.getColumn("status")
+      if (!statusColumn) return [];
+      const values = Array.from(statusColumn?.getFacetedUniqueValues?.().keys())
+      return values.sort();
+    }
+  }, [table?.getColumn("status")?.getFacetedUniqueValues()]);
 
   const selectedStatuses = useMemo(() => {
-    const filterValue = table.getColumn("status")?.getFilterValue()
+    const filterValue = table?.getColumn("status")?.getFilterValue()
     return filterValue ?? []
-  }, [table.getColumn("status")?.getFilterValue()])
+  }, [table?.getColumn("status")?.getFilterValue()])
 
   const handleStatusChange = (checked, value) => {
-    const filterValue = table.getColumn("status")?.getFilterValue()
+    const filterValue = table?.getColumn("status")?.getFilterValue()
     const newFilterValue = filterValue ? [...filterValue] : []
 
     if (checked) {
@@ -448,8 +470,7 @@ export default function TemplateComponent({companyID}) {
       }
     }
 
-    table
-      .getColumn("status")
+    table?.getColumn("status")
       ?.setFilterValue(newFilterValue.length ? newFilterValue : undefined)
   }
 
@@ -467,12 +488,12 @@ export default function TemplateComponent({companyID}) {
               ref={inputRef}
               className={cn(
                 "peer min-w-60 ps-9 border border-gray-300 rounded-lg py-2 text-sm focus:border-emerald-600 ",
-                Boolean(table.getColumn("templateName")?.getFilterValue()) && "pe-9"
+                Boolean(table?.getColumn("templateName")?.getFilterValue()) && "pe-9"
               )}
               value={
-                (table.getColumn("templateName")?.getFilterValue() ?? "")
+                (table?.getColumn("templateName")?.getFilterValue() ?? "")
               }
-              onChange={(e) => table.getColumn("templateName")?.setFilterValue(e.target.value)}
+              onChange={(e) => table?.getColumn("templateName")?.setFilterValue(e.target.value)}
               placeholder="Filter by name..."
               type="text"
               aria-label="Filter by name" />
@@ -515,7 +536,7 @@ export default function TemplateComponent({companyID}) {
                         className="flex grow justify-between gap-2 font-normal">
                         {value}{" "}
                         <span className="text-muted-foreground ms-2 text-xs">
-                          {statusCounts.get(value)}
+                          {statusCounts?.get(value)}
                         </span>
                       </Label>
                     </div>
@@ -533,30 +554,30 @@ export default function TemplateComponent({companyID}) {
       <div className="bg-white shadow-sm border-gray-300 overflow-hidden rounded-md border">
         <Table className="table-fixed">
           <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
+            {table?.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id} className="hover:bg-transparent">
                 {headerGroup.headers.map((header) => {
                   return (
                     <TableHead
                       key={header.id}
-                      style={{ width: `${header.getSize()}px` }}
+                      style={{ width: `${header?.getSize()}px` }}
                       className="h-11">
-                      {header.isPlaceholder ? null : header.column.getCanSort() ? (
+                      {header.isPlaceholder ? null : header.column?.getCanSort() ? (
                         <div
-                          className={cn(header.column.getCanSort() && "flex h-full cursor-pointer items-center justify-between gap-2 select-none")}
-                          onClick={header.column.getToggleSortingHandler()}
+                          className={cn(header.column?.getCanSort() && "flex h-full cursor-pointer items-center justify-between gap-2 select-none")}
+                          onClick={header.column?.getToggleSortingHandler()}
                           onKeyDown={(e) => {
                             // Enhanced keyboard handling for sorting
                             if (
-                              header.column.getCanSort() &&
+                              header.column?.getCanSort() &&
                               (e.key === "Enter" || e.key === " ")
                             ) {
                               e.preventDefault()
-                              header.column.getToggleSortingHandler()?.(e)
+                              header.column?.getToggleSortingHandler()?.(e)
                             }
                           }}
-                          tabIndex={header.column.getCanSort() ? 0 : undefined}>
-                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          tabIndex={header.column?.getCanSort() ? 0 : undefined}>
+                          {flexRender(header.column.columnDef.header, header?.getContext())}
                           {{
                             asc: (
                               <ChevronUpIcon className="shrink-0 opacity-60" size={16} aria-hidden="true" />
@@ -564,10 +585,10 @@ export default function TemplateComponent({companyID}) {
                             desc: (
                               <ChevronDownIcon className="shrink-0 opacity-60" size={16} aria-hidden="true" />
                             ),
-                          }[header.column.getIsSorted()] ?? null}
+                          }[header.column?.getIsSorted()] ?? null}
                         </div>
                       ) : (
-                        flexRender(header.column.columnDef.header, header.getContext())
+                        flexRender(header.column.columnDef.header, header?.getContext())
                       )}
                     </TableHead>
                   );
@@ -576,22 +597,22 @@ export default function TemplateComponent({companyID}) {
             ))}
           </TableHeader>
           <TableBody>
-            {!loadingTemplates && table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
+            {!loadingTemplates && table?.getRowModel().rows?.length ? (
+              table?.getRowModel().rows.map((row,index) => (index < ((pagination.pageIndex + 1) * pagination.pageSize) && index > (pagination.pageIndex * pagination.pageSize)) && 
+                (<TableRow
                   key={row.id}
                   className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
                 >
-                  {row.getVisibleCells().map((cell) => (
+                  {row?.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}
-                      className="py-4 px-4 text-sm text-gray-700"
+                      className="py-3 px-3 text-sm text-gray-700"
                     >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      {flexRender(cell.column.columnDef.cell, cell?.getContext())}
                     </TableCell>
                   ))}
-                </TableRow>
-              ))
+                </TableRow>)
+              )
             ) : !loadingTemplates ? (
               <TableRow>
                 <TableCell
@@ -624,7 +645,7 @@ export default function TemplateComponent({companyID}) {
             Rows per page
           </Label>
           <Select
-            value={table.getState().pagination.pageSize.toString()}
+            value={table?.getState().pagination.pageSize.toString()}
             onValueChange={(value) => {
               table.setPageSize(Number(value))
             }}>
@@ -648,17 +669,17 @@ export default function TemplateComponent({companyID}) {
             className="text-muted-foreground text-sm whitespace-nowrap"
             aria-live="polite">
             <span className="text-foreground">
-              {table.getState().pagination.pageIndex *
-                table.getState().pagination.pageSize +
+              {table?.getState().pagination.pageIndex *
+                table?.getState().pagination.pageSize +
                 1}
               -
-              {Math.min(Math.max(table.getState().pagination.pageIndex *
-                table.getState().pagination.pageSize +
-                table.getState().pagination.pageSize, 0), table.getRowCount())}
+              {Math.min(Math.max(table?.getState().pagination.pageIndex *
+                table?.getState().pagination.pageSize +
+                table?.getState().pagination.pageSize, 0), totalCountRef.current)}
             </span>{" "}
             of{" "}
             <span className="text-foreground">
-              {table.getRowCount().toString()}
+              {totalCountRef.current?.toString()}
             </span>
           </p>
         </div>
@@ -674,7 +695,7 @@ export default function TemplateComponent({companyID}) {
                   variant="outline"
                   className="disabled:pointer-events-none disabled:opacity-50"
                   onClick={() => table.firstPage()}
-                  disabled={!table.getCanPreviousPage()}
+                  disabled={!table?.getCanPreviousPage()}
                   aria-label="Go to first page">
                   <ChevronFirstIcon size={16} aria-hidden="true" />
                 </Button>
@@ -686,7 +707,7 @@ export default function TemplateComponent({companyID}) {
                   variant="outline"
                   className="disabled:pointer-events-none disabled:opacity-50"
                   onClick={() => table.previousPage()}
-                  disabled={!table.getCanPreviousPage()}
+                  disabled={!table?.getCanPreviousPage()}
                   aria-label="Go to previous page">
                   <ChevronLeftIcon size={16} aria-hidden="true" />
                 </Button>
@@ -698,7 +719,7 @@ export default function TemplateComponent({companyID}) {
                   variant="outline"
                   className="disabled:pointer-events-none disabled:opacity-50"
                   onClick={() => table.nextPage()}
-                  disabled={!table.getCanNextPage()}
+                  disabled={!table?.getCanNextPage()}
                   aria-label="Go to next page">
                   <ChevronRightIcon size={16} aria-hidden="true" />
                 </Button>
@@ -710,7 +731,7 @@ export default function TemplateComponent({companyID}) {
                   variant="outline"
                   className="disabled:pointer-events-none disabled:opacity-50"
                   onClick={() => table.lastPage()}
-                  disabled={!table.getCanNextPage()}
+                  disabled={!table?.getCanNextPage() || visitedPagesRef.current.size < table.getPageCount()}
                   aria-label="Go to last page">
                   <ChevronLastIcon size={16} aria-hidden="true" />
                 </Button>

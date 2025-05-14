@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 
 export const useFetchTemplates = () => {
   const [allTemplates, setAllTemplates] = useState([]);
+  const [totalCount, setTotalCount] = useState();
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [templateError, setTemplateError] = useState(null);
 
@@ -9,7 +10,7 @@ export const useFetchTemplates = () => {
   const controllerRef = useRef(null);
 
 
-  const fetchTemplates = useCallback(async (query) => {
+  const fetchTemplates = useCallback(async ({companyID, limit, index, fields}) => {
     if (controllerRef.current) {
       controllerRef.current.abort();
     }
@@ -19,9 +20,8 @@ export const useFetchTemplates = () => {
 
     setLoadingTemplates(true);
     setTemplateError(null);
-    const {companyID} = query;
     try {
-      const response = await fetch(`/api/templates/get-all?companyID=${companyID}`, {
+      const response = await fetch(`/api/templates/get-all?companyID=${companyID}&limit=${limit||10}&index=${index||0}&fields=${fields||''}`, {
         signal: controller.signal,
       });
 
@@ -32,6 +32,7 @@ export const useFetchTemplates = () => {
 
       const result = await response.json();
       setAllTemplates(result.templates || []);
+      setTotalCount(result.totalCount || 0);
       return result;
     } catch (err) {
       if (err.name === 'AbortError') {
@@ -52,5 +53,5 @@ export const useFetchTemplates = () => {
     }
   };
 
-  return { allTemplates, loadingTemplates, templateError, fetchTemplates, cancelTemplatesOperation };
+  return { allTemplates, totalCount, loadingTemplates, templateError, fetchTemplates, cancelTemplatesOperation };
 };
