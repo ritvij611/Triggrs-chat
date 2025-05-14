@@ -414,6 +414,12 @@ export default function TemplateComponent({companyID}) {
   },
 ]
 
+  const dynamicPageCount =
+  data.length < totalCountRef.current
+    ? Math.ceil(totalCountRef.current / pagination.pageSize)
+    : undefined;
+
+
   const table = useReactTable({
   data,
   columns,
@@ -425,8 +431,8 @@ export default function TemplateComponent({companyID}) {
   onPaginationChange: setPagination,
   onColumnFiltersChange: setColumnFilters,
   onColumnVisibilityChange: setColumnVisibility,
-  pageCount: Math.ceil(totalCountRef.current / pagination.pageSize),
-  manualPagination: true, 
+  pageCount: dynamicPageCount,
+  manualPagination: data.length <= totalCountRef.current,
   state: {
     sorting,
     pagination,
