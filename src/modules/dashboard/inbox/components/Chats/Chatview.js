@@ -5,6 +5,7 @@ import SearchChatUser from './SearchChatUser'
 import ChatUserItem from './ChatUserItem'
 import { useCallback, useEffect, useRef, useState } from 'react';
 import SelectedChatUsers from './SelectedChatUsers';
+import { MessageSquarePlus } from 'lucide-react';
 // import Cookies from 'universal-cookie';
 
 
@@ -174,46 +175,50 @@ const getConversations = async (phone_number_id, skip, limit) => {
 
   return (
     <>
-      <ChatLayout>
-      <div className="w-full font-inter  overflow-y-auto sticky top-0 bg-white bottom-0 lg:h-[calc(100vh-65px)]" aria-label="Sidenav">
+      <div className="w-full rounded-lg font-inter overflow-y-auto sticky top-0 shadow border border-gray-100 bg-white bottom-0 lg:h-[calc(100vh-65px)]" aria-label="Sidenav">
+                <div className='w-full sticky top-0 bg-white'>
+                  <div className='w-full flex justify-between items-center px-6 pt-4 pb-1'>
+                  <h3 className='text-xl font-semibold'>Inbox</h3>
+                  <MessageSquarePlus size={20} className='opacity-70' />
+                </div>
                 <SearchChatUser placeholder='Search Contacts' />
-                <div className = "h-full border-r border-gray-200">
-                    <div className="w-full  overflow-y-auto">
-                        {
-                        contactList && contactList.length > 0 
-                        ? contactList.map((contactItem,i) => {
-                            return <ChatUserItem 
-                                key={i} 
-                                name={contactItem.wa_profile_name} 
-                                message={contactItem.message} 
-                                time={contactItem.time} 
-                                messageCount={contactItem.messageCount} 
-                                chatStatus={contactItem.chatStatus}
-                                onClick={() => selectUser(contactItem._id)} 
-                                onMenuClick={(e) => showRightDropDown(e, i)}
-                            />
-                        })
-                        : <>Not found</>
-                        }
+                <hr/>
+                </div>
+                <div className = "border-r border-gray-200">
+                    <div className="w-full overflow-y-auto">
+{/*                         
+                        // contactList && contactList.length > 0 
+                        // ? contactList.map((contactItem,i) => {
+                        //     return  */}
+                            <ChatUserItem />
+                            <ChatUserItem />
+                            <ChatUserItem />
+                            <ChatUserItem />
+                            <ChatUserItem />
+                            <ChatUserItem />
+                            <ChatUserItem />
+                            <ChatUserItem />
+                            <ChatUserItem />
+                            <ChatUserItem />
+                        {/* // })
+                        // : <>Not found</> */}
+                        
                     </div>
                 </div>
+      </div>
+      <div className='w-full'>
+      {
+        contactItem 
+        ? <SelectedChatUsers contactItem = {contactItem} />
+        : <div className='hidden sm:flex flex-col justify-center items-center h-full w-full p-4'>
+            {/* <button onClick={onConnect}>Connect</button> */}
+            <div className='max-w-[500px] w-full mx-auto'>
+              <Image className='object-contain w-80 h-auto mx-auto' alt='default background image' width={500} height={300} src="/images/empty-chatbox.svg"/>
+              <p className='text-sm sm:text-base text-neutral-800/40 font-semibold mt-8 w-full text-center lg:whitespace-nowrap'>Hello! I&apos;m here to assist you with any questions or concerns.</p>
             </div>
-            {contactItem  ?  
-        <SelectedChatUsers contactItem = {contactItem} />:<div className='hidden sm:flex flex-col justify-center items-center bg-slate-200/80 h-full w-full p-4'>
-                  {/* <button onClick={onConnect}>Connect</button> */}
-                  <div className='max-w-[500px] w-full'>
-                    <Image 
-                      className='object-contain w-full h-auto' 
-                      alt='default background image' 
-                      width={500} 
-                      height={400} 
-                      src="/images/empty-chatbox.svg"
-                    />
-                    <p className='text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl text-neutral-800 font-bold mt-8 w-full text-center lg:whitespace-nowrap'>Hello! I&apos;m here to assist you with any questions or concerns.</p>
-                  </div>
-                </div>}
-      </ChatLayout>
-
+        </div>
+      }
+      </div>
     </>
 
   )

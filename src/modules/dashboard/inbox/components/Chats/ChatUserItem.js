@@ -1,7 +1,6 @@
-import Image from "next/image"
 import PropTypes from 'prop-types'
 
-export default function ChatUserItem({time, name, message, messageCount, onClick, onMenuClick, chatStatus}) {
+export default function ChatUserItem({time="20:59", name="Tw", message='dofijhpjpo', messageCount=2, onClick=()=>{}, onMenuClick=()=>{}, chatStatus="Active"}) {
   return (
         <div onContextMenu={onMenuClick} className="flex flex-nowrap items-center px-3 w-full font-inter border-gray-200 h-[72px] border-b group hover:bg-green-400/10">
             {/* <Image alt="team" className="w-10 h-10 object-cover object-center flex-shrink-0 rounded-full mr-3" src="/images/dummy-image.png" width={100} height={100} /> */}
