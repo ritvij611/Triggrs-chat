@@ -191,7 +191,7 @@ export default function TemplateComponent({companyID}) {
   useEffect(() => {
     if (allTemplates) {
       setData((prev) => [...prev, ...allTemplates]);
-      totalCountRef.current = totalCount;
+      if(!totalCountRef.current)totalCountRef.current = totalCount;
     }
   }, [allTemplates]);
 
@@ -425,7 +425,8 @@ export default function TemplateComponent({companyID}) {
   onPaginationChange: setPagination,
   onColumnFiltersChange: setColumnFilters,
   onColumnVisibilityChange: setColumnVisibility,
-  pageCount: Math.ceil(totalCountRef.current / pagination.pageSize), 
+  pageCount: Math.ceil(totalCountRef.current / pagination.pageSize),
+  manualPagination: true, 
   state: {
     sorting,
     pagination,
@@ -471,7 +472,8 @@ export default function TemplateComponent({companyID}) {
     }
 
     table?.getColumn("status")
-      ?.setFilterValue(newFilterValue.length ? newFilterValue : undefined)
+      ?.setFilterValue(newFilterValue.length ? newFilterValue : undefined);
+    setPagination({pageIndex: 0, pageSize: 10});
   }
 
   return (
@@ -493,7 +495,7 @@ export default function TemplateComponent({companyID}) {
               value={
                 (table?.getColumn("templateName")?.getFilterValue() ?? "")
               }
-              onChange={(e) => table?.getColumn("templateName")?.setFilterValue(e.target.value)}
+              onChange={(e) => {table?.getColumn("templateName")?.setFilterValue(e.target.value); setPagination({pageIndex: 0, pageSize: 10});}}
               placeholder="Filter by name..."
               type="text"
               aria-label="Filter by name" />
@@ -598,7 +600,7 @@ export default function TemplateComponent({companyID}) {
           </TableHeader>
           <TableBody>
             {!loadingTemplates && table?.getRowModel().rows?.length ? (
-              table?.getRowModel().rows.map((row,index) => (index < ((pagination.pageIndex + 1) * pagination.pageSize) && index > (pagination.pageIndex * pagination.pageSize)) && 
+              table?.getRowModel().rows.map((row,index) => (index < ((pagination.pageIndex + 1) * pagination.pageSize) && index >= (pagination.pageIndex * pagination.pageSize)) && 
                 (<TableRow
                   key={row.id}
                   className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
@@ -646,15 +648,13 @@ export default function TemplateComponent({companyID}) {
           </Label>
           <Select
             value={table?.getState().pagination.pageSize.toString()}
-            onValueChange={(value) => {
-              table.setPageSize(Number(value))
-            }}>
+            >
             <SelectTrigger id={id} className="w-fit whitespace-nowrap">
               <SelectValue placeholder="Select number of results" />
             </SelectTrigger>
             <SelectContent
               className="[&_*[role=option]]:ps-2 [&_*[role=option]]:pe-8 [&_*[role=option]>span]:start-auto [&_*[role=option]>span]:end-2">
-              {[5, 10, 25, 50].map((pageSize) => (
+              {[10].map((pageSize) => (
                 <SelectItem key={pageSize} value={pageSize.toString()}>
                   {pageSize}
                 </SelectItem>
@@ -675,11 +675,11 @@ export default function TemplateComponent({companyID}) {
               -
               {Math.min(Math.max(table?.getState().pagination.pageIndex *
                 table?.getState().pagination.pageSize +
-                table?.getState().pagination.pageSize, 0), totalCountRef.current)}
+                table?.getState().pagination.pageSize, 0), table?.getRowCount())}
             </span>{" "}
             of{" "}
             <span className="text-foreground">
-              {totalCountRef.current?.toString()}
+              {table?.getRowCount()?.toString()}
             </span>
           </p>
         </div>
