@@ -26,6 +26,7 @@ import {
   ListFilterIcon,
   PlusIcon,
   TrashIcon,
+  EyeIcon
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -118,6 +119,7 @@ const getFormattedDate = (isoDate) =>{
 
 export default function TemplateComponent({companyID}) {
   const [data, setData] = useState([]);
+  const [deletedTemplate, setDeletedTemplate] = useState('');
   const { allTemplates, loadingTemplates, templateError, fetchTemplates, cancelTemplatesOperation } = useFetchTemplates();
   const { deleteResponse, isDeleteLoading, deleteError, handleDelete, cancelDelete } = useDeleteTemplate();
   const id = useId();
@@ -156,12 +158,13 @@ export default function TemplateComponent({companyID}) {
 
   useEffect(() => {
     if (deleteResponse?.message === "template deleted successfully") {
-      const templateName = deleteResponse.name;
-      toast.success(`Template ${templateName} Deleted Successfully`);
-      const updatedData = data.filter((item) => item.templateName !== templateName)
+      toast.success(`Template ${deletedTemplate} Deleted Successfully`);
+      const updatedData = data.filter((item) => item.templateName !== deletedTemplate)
       setData(updatedData);
+      setDeletedTemplate('');
     } else if(deleteError){
       toast.error(deleteError);
+      setDeletedTemplate('');
     }
   },[deleteResponse,deleteError]);
 
@@ -208,6 +211,7 @@ export default function TemplateComponent({companyID}) {
 
   const handleDeleteRows = async(templateName) => {
     try{
+      setDeletedTemplate(templateName);
       await handleDelete({
         companyID,
         templateName
@@ -263,14 +267,20 @@ export default function TemplateComponent({companyID}) {
     
   },
   {
-    id:"delete",
+    header: "",
+    id: "delete",
     cell: ({ row }) => (
       <AlertDialog>
         <AlertDialogTrigger asChild>
-          <Button className="ml-auto" variant="outline">
-            <TrashIcon className="-ms-1 opacity-60" size={16} aria-hidden="true" />
-            Delete
-          </Button>
+          
+          
+          
+          <button disabled={row.getValue("templateName") === deletedTemplate} className="ml-auto flex items-center gap-1">
+            {row.getValue("templateName") === deletedTemplate ?
+            <span className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-gray-300 border-t-transparent inline-block"></span>
+            :(<><TrashIcon className="-ms-1 opacity-60" size={16} aria-hidden="true" />
+            Delete</>)}
+          </button>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <div className="flex flex-col gap-2 max-sm:items-center sm:flex-row sm:gap-4">
@@ -300,14 +310,16 @@ export default function TemplateComponent({companyID}) {
     
   },
   {
+    header:"",
     id:"components",
     accessorKey:"components",
     cell: ({ row }) => (
       <AlertDialog>
         <AlertDialogTrigger>
-          <Button className="ml-auto" variant="outline">
+          <button className="ml-auto flex items-center gap-1">
+            <EyeIcon className="-ms-1 opacity-60" size={16} aria-hidden="true" />
             View
-          </Button>
+          </button>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <div className="flex flex-col gap-2 max-sm:items-center sm:flex-row sm:gap-4">
