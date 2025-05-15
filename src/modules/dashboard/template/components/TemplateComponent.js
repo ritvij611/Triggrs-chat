@@ -145,17 +145,11 @@ export default function TemplateComponent({companyID}) {
     },
   ]);
 
-  const paginatedData = useMemo(() => {
-    const start = pagination.pageIndex * pagination.pageSize;
-    const end = start + pagination.pageSize;
-    return data.slice(start, end);
-  }, [data, pagination.pageIndex, pagination.pageSize]);
-
   useEffect(() => {
     const fetch = async () => {
       const currentIndex = pagination.pageIndex;
 
-      if (companyID && !visitedPagesRef.current.has(currentIndex)) {
+      if (companyID && !visitedPagesRef.current.has(currentIndex) && (!totalCountRef.current || data.length < totalCountRef.current)) {
         await fetchTemplates({
           companyID,
           index: currentIndex,
