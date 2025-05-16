@@ -7,27 +7,31 @@ export const useDeleteContact = () => {
 
     const controllerRef = useRef(null);
 
-    const handleDelete = useCallback(async ({ companyID, phoneNumber }) => {
+    const handleDelete = useCallback(async (query) => {
         if (controllerRef.current) {
             controllerRef.current.abort();
         }
 
         const controller = new AbortController();
         controllerRef.current = controller;
-
+        
         setIsDeleteLoading(true);
         setDeleteError(null);
         setDeleteResponse(null);
 
         try {
             const res = await fetch(
-                `/api/Contacts/delete?companyID=${companyID}&phoneNumber=${phoneNumber}`,
+                `/api/contacts/delete`,
                 {
-                    method: 'DELETE',
+                    method: 'POST',
+                    body: JSON.stringify({...query}),
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
                     signal: controller.signal
                 }
             );
-
+            
             if (!res.ok) {
                 let errorMessage = 'Failed to Delete';
                 try {
@@ -41,7 +45,6 @@ export const useDeleteContact = () => {
             }
 
             const result = await res.json();
-            console.log(result)
             setDeleteResponse(result);
         } catch (err) {
             if (err.name === 'AbortError') {

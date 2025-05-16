@@ -22,6 +22,7 @@ export const useCreateContact = () => {
         setCreateResponse(null);
 
         try {
+            console.log({...query});
             
             const res = await fetch(`/api/contacts/create-new`, {
                 method: 'POST',

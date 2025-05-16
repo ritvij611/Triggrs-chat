@@ -73,7 +73,7 @@ const columns = [
     header: "Name",
     accessorKey: "name",
     cell: ({ row }) => (
-      <div className="font-medium">{`${row.getValue("firstName")} ${row.getValue("lastName")}`}</div>
+      <div className="font-medium">{`${row.original.firstName} ${row.original.lastName}`}</div>
     ),
     size: 180,
     filterFn: multiColumnFilterFn,
@@ -100,19 +100,13 @@ const columns = [
         className={cn(!row.getValue("optedIn") ?
           "bg-red-600/20 text-red-600"
         : "bg-green-600/20 text-green-600")}>
-        {`${row.getValue("opteIn")?'YES':"NO"}`}
+        {`${row.getValue("optedIn")?"YES":"NO"}`}
       </Badge>
     ),
     size: 100,
     filterFn: statusFilterFn,
   },
-  {
-    id: "actions",
-    header: () => <span className="sr-only">Actions</span>,
-    cell: ({ row }) => <RowActions row={row} />,
-    size: 60,
-    enableHiding: false,
-  },
+
 ]
 
 export default function ViewContactManagement({companyID}) {
@@ -169,6 +163,7 @@ export default function ViewContactManagement({companyID}) {
       firstName,
       lastName,
       phoneNumber,
+      optedIn,
       countryCode: country.code,
       country: country.country,
       properties: customProperties
@@ -200,7 +195,6 @@ export default function ViewContactManagement({companyID}) {
   useEffect(() => {
     if (allContacts) {
       setData((prev) => [...prev, ...allContacts])
-      console.log(allContacts)
       if(!totalCountRef.current)totalCountRef.current = totalCount;
     }
   }, [allContacts]);
@@ -215,12 +209,30 @@ export default function ViewContactManagement({companyID}) {
     }
   },[createResponse,createError]);
 
-  const handleDeleteRows = () => {
-    const selectedRows = table.getSelectedRowModel().rows
-    const updatedData = data.filter((item) => !selectedRows.some((row) => row.original.id === item.id))
-    setData(updatedData)
-    table.resetRowSelection()
+  const handleDeleteRows = async() => {
+    const selectedRows = table.getSelectedRowModel().rows;
+    const phoneNumbers = selectedRows.map(row => row.original.phoneNumber);
+    await handleDelete({
+      companyID,
+      phoneNumbers
+    });
   }
+
+  useEffect(() => {
+    if (deleteResponse?.status === 200) {
+      toast.success(deleteResponse.message);
+      const deletedContacts = table.getSelectedRowModel().rows;
+      console.log(deletedContacts);
+      const updatedData = data.filter((item) => !deletedContacts.some((row) => row.original._id === item._id))
+      console.log(updatedData);
+      setData(updatedData);
+      totalCountRef.current = totalCountRef.current - deleteResponse.count;
+      table.resetRowSelection();
+    } else if(deleteError){
+      toast.error(deleteError);
+      table.resetRowSelection();
+    }
+  },[deleteResponse,deleteError]);
 
   const table = useReactTable({
     data,
@@ -235,6 +247,7 @@ export default function ViewContactManagement({companyID}) {
     onColumnVisibilityChange: setColumnVisibility,
     getFilteredRowModel: getFilteredRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
+    manualPagination: true,
     state: {
       sorting,
       pagination,
@@ -390,15 +403,15 @@ export default function ViewContactManagement({companyID}) {
                       This action cannot be undone. This will permanently delete{" "}
                       {table.getSelectedRowModel().rows.length} selected{" "}
                       {table.getSelectedRowModel().rows.length === 1
-                        ? "row"
-                        : "rows"}
+                        ? "contact"
+                        : "contacts"}
                       .
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                 </div>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteRows}>
+                  <AlertDialogAction onClick={() => {handleDeleteRows(table.getSelectedRowModel().rows)}}>
                     Delete
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -494,7 +507,7 @@ export default function ViewContactManagement({companyID}) {
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row,index) => (index < ((pagination.pageIndex + 1) * pagination.pageSize) && index >= (pagination.pageIndex * pagination.pageSize)) && (
+              table.getRowModel().rows.map((row,index) => (index < ((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize) && index >= (table.getState().pagination.pageIndex * table.getState().pagination.pageSize)) && (
                 <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id} className="last:py-0">
@@ -523,14 +536,14 @@ export default function ViewContactManagement({companyID}) {
           <Select
             value={table.getState().pagination.pageSize.toString()}
             onValueChange={(value) => {
-              table.setPageSize(Number(value))
+              table.setPageSize(Number(value));
             }}>
             <SelectTrigger id={id} className="w-fit whitespace-nowrap">
               <SelectValue placeholder="Select number of results" />
             </SelectTrigger>
             <SelectContent
               className="[&_*[role=option]]:ps-2 [&_*[role=option]]:pe-8 [&_*[role=option]>span]:start-auto [&_*[role=option]>span]:end-2">
-              {[5, 10, 25, 50].map((pageSize) => (
+              {[10].map((pageSize) => (
                 <SelectItem key={pageSize} value={pageSize.toString()}>
                   {pageSize}
                 </SelectItem>
@@ -621,7 +634,7 @@ export default function ViewContactManagement({companyID}) {
 }
 
 function RowActions({
-  row
+  row, handleDelete
 }) {
   return (
     <DropdownMenu>
@@ -638,10 +651,6 @@ function RowActions({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuGroup>
-          <DropdownMenuItem>
-            <span>Edit</span>
-            <DropdownMenuShortcut>⌘E</DropdownMenuShortcut>
-          </DropdownMenuItem>
           <DropdownMenuItem>
             <span>Duplicate</span>
             <DropdownMenuShortcut>⌘D</DropdownMenuShortcut>
@@ -671,9 +680,39 @@ function RowActions({
           <DropdownMenuItem>Add to favorites</DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="text-destructive focus:text-destructive">
-          <span>Delete</span>
-          <DropdownMenuShortcut>⌘⌫</DropdownMenuShortcut>
+        <DropdownMenuItem 
+        className="text-destructive focus:text-destructive"
+        onSelect={(e) => e.preventDefault()}>
+          <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button  className="w-full text-left">
+                  Delete
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <div className="flex flex-col gap-2 max-sm:items-center sm:flex-row sm:gap-4">
+                  <div
+                    className="flex size-9 shrink-0 items-center justify-center rounded-full border"
+                    aria-hidden="true">
+                    <CircleAlertIcon className="opacity-80" size={16} />
+                  </div>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Are you absolutely sure?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {`This action cannot be undone. The contact for ${row.original.firstName} ${row.original.lastName}: ${row.original.phoneNumber} will be permanently deleted.`}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={()=>{}}>
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -102,6 +102,7 @@ const TemplateCreate = ({companyID}) => {
   useEffect(() => {
     if(createResponse?.message === "template added successfully"){
       toast.success("Template Added Successfully");
+      router.push("/dashboard/templates");
     } else if(createError){
       toast.error(createError);
     }
