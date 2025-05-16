@@ -1,6 +1,10 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react"
+import { useCreateContact } from "@/modules/authentication/hooks/useCreateContact";
+import { useFetchContacts } from "@/modules/authentication/hooks/useFetchContacts";
+import { useDeleteContact } from "@/modules/authentication/hooks/useDeleteContact";
+import { CreateContactDialog } from "./CreateContactDialog";
 import { flexRender, getCoreRowModel, getFacetedUniqueValues, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable,} from "@tanstack/react-table";
-import { ChevronDownIcon, ChevronFirstIcon, ChevronLastIcon, ChevronLeftIcon, ChevronRightIcon, ChevronUpIcon, CircleAlertIcon, CircleXIcon, EllipsisIcon, FilterIcon, ListFilterIcon, TrashIcon} from "lucide-react"
+import { ChevronDownIcon, ChevronFirstIcon, ChevronLastIcon, ChevronLeftIcon, ChevronRightIcon, ChevronUpIcon, CircleAlertIcon, CircleXIcon, EllipsisIcon, FilterIcon, ListFilterIcon, PlusIcon, TrashIcon} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,} from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
@@ -13,14 +17,23 @@ import { Popover, PopoverContent, PopoverTrigger,} from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow,} from "@/components/ui/table"
 import { useRouter } from "next/router";
+import { toast } from "sonner";
+
 
 // Custom filter function for multi-column searching
 const multiColumnFilterFn = (row, columnId, filterValue) => {
-  const searchableRowContent =
-    `${row.original.name} ${row.original.email}`.toLowerCase()
-  const searchTerm = (filterValue ?? "").toLowerCase()
-  return searchableRowContent.includes(searchTerm);
-}
+  const firstName = row.original.firstName?.toLowerCase() || "";
+  const lastName = row.original.lastName?.toLowerCase() || "";
+  const phoneNumber = row.original.phoneNumber?.toLowerCase() || "";
+
+  const search = filterValue.toLowerCase();
+  return (
+    firstName.includes(search) ||
+    lastName.includes(search) ||
+    phoneNumber.includes(search)
+  );
+};
+
 
 const statusFilterFn = (
   row,
@@ -60,69 +73,48 @@ const columns = [
     header: "Name",
     accessorKey: "name",
     cell: ({ row }) => (
-      <div className="font-medium">{row.getValue("name")}</div>
+      <div className="font-medium">{`${row.original.firstName} ${row.original.lastName}`}</div>
     ),
     size: 180,
     filterFn: multiColumnFilterFn,
     enableHiding: false,
   },
   {
-    header: "Email",
-    accessorKey: "email",
+    header: "Phone Number",
+    accessorKey: "phoneNumber",
     size: 220,
   },
   {
-    header: "Location",
-    accessorKey: "location",
+    header: "Country",
+    accessorKey: "country",
     cell: ({ row }) => (
-      <div>
-        <span className="text-lg leading-none">{row.original.flag}</span>{" "}
-        {row.getValue("location")}
-      </div>
+      <div className="font-medium">{row.getValue("country")}</div>
     ),
     size: 180,
   },
   {
-    header: "Status",
-    accessorKey: "status",
+    header: "Opted In",
+    accessorKey: "optedIn",
     cell: ({ row }) => (
       <Badge
-        className={cn(row.getValue("status") === "Inactive" ?
+        className={cn(!row.getValue("optedIn") ?
           "bg-red-600/20 text-red-600"
         : "bg-green-600/20 text-green-600")}>
-        {row.getValue("status")}
+        {`${row.getValue("optedIn")?"YES":"NO"}`}
       </Badge>
     ),
     size: 100,
     filterFn: statusFilterFn,
   },
-  {
-    header: "Performance",
-    accessorKey: "performance",
-  },
-  {
-    header: "Balance",
-    accessorKey: "balance",
-    cell: ({ row }) => {
-      const amount = parseFloat(row.getValue("balance"))
-      const formatted = new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-      }).format(amount)
-      return formatted
-    },
-    size: 120,
-  },
-  {
-    id: "actions",
-    header: () => <span className="sr-only">Actions</span>,
-    cell: ({ row }) => <RowActions row={row} />,
-    size: 60,
-    enableHiding: false,
-  },
+
 ]
 
-export default function ViewContactManagement() {
+export default function ViewContactManagement({companyID}) {
+  const { createResponse, isCreateLoading, createError, handleCreate, cancelCreate } = useCreateContact();
+  const { allContacts, totalCount, loadingContacts, contactError, fetchContacts, cancelContactsOperation } = useFetchContacts();
+  const { deleteResponse, isDeleteLoading, deleteError, handleDelete, cancelDelete } = useDeleteContact();
+  const visitedPagesRef = useRef(new Set());
+  const totalCountRef = useRef(0);
   const id = useId()
   const [columnFilters, setColumnFilters] = useState([])
   const [columnVisibility, setColumnVisibility] = useState({})
@@ -131,6 +123,7 @@ export default function ViewContactManagement() {
     pageIndex: 0,
     pageSize: 10,
   })
+
   const inputRef = useRef(null)
 
   const [sorting, setSorting] = useState([
@@ -141,21 +134,105 @@ export default function ViewContactManagement() {
   ])
 
   const [data, setData] = useState([])
-  useEffect(() => {
-    async function fetchPosts() {
-      const res = await fetch("https://res.cloudinary.com/dlzlfasou/raw/upload/users-01_fertyx.json")
-      const data = await res.json()
-      setData(data)
-    }
-    fetchPosts()
-  }, [])
 
-  const handleDeleteRows = () => {
-    const selectedRows = table.getSelectedRowModel().rows
-    const updatedData = data.filter((item) => !selectedRows.some((row) => row.original.id === item.id))
-    setData(updatedData)
-    table.resetRowSelection()
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [country, setCountry] = useState({});
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [optedIn, setOptedIn] = useState(false);
+  const [customProperties, setCustomProperties] = useState([{ key: "", value: "" }]);
+
+  const addCustomProperty = () => {
+    setCustomProperties([...customProperties, { key: "", value: "" }]);
+  };
+
+  const removeCustomProperty = (index) => {
+    const updatedProperties = customProperties.filter((_, i) => i !== index);
+    setCustomProperties(updatedProperties);
+  };
+
+  const updateCustomProperty = (index, field, value) => {
+    const updatedProperties = [...customProperties];
+    updatedProperties[index][field] = value;
+    setCustomProperties(updatedProperties);
+  };
+
+  const handleCreateContact = async () => {
+    await handleCreate({
+      companyID,
+      firstName,
+      lastName,
+      phoneNumber,
+      optedIn,
+      countryCode: country.code,
+      country: country.country,
+      properties: customProperties
+    });
   }
+  
+  useEffect(() => {
+    const fetch = async () => {
+      const currentIndex = pagination.pageIndex;
+
+      if (companyID && !visitedPagesRef.current.has(currentIndex) && (!totalCountRef.current || data.length < totalCountRef.current)) {
+        await fetchContacts({
+          companyID,
+          index: currentIndex,
+          limit: pagination.pageSize,
+        });
+        visitedPagesRef.current.add(currentIndex);
+      }
+    };
+    fetch();
+  }, [pagination.pageIndex, pagination.pageSize, companyID]);
+
+  useEffect(() => {
+    if(contactError){
+      toast.error(contactError);
+    }
+  }, [contactError]);
+
+  useEffect(() => {
+    if (allContacts) {
+      setData((prev) => [...prev, ...allContacts])
+      if(!totalCountRef.current)totalCountRef.current = totalCount;
+    }
+  }, [allContacts]);
+
+  useEffect(() => {
+    if (createResponse?.message === "Contact added successfully") {
+      toast.success(`Contact added successfully`);
+      setData((prev) => [...prev, createResponse.contact]);
+      totalCountRef.current = totalCountRef.current + 1;
+    } else if(createError){
+      toast.error(deleteError);
+    }
+  },[createResponse,createError]);
+
+  const handleDeleteRows = async() => {
+    const selectedRows = table.getSelectedRowModel().rows;
+    const phoneNumbers = selectedRows.map(row => row.original.phoneNumber);
+    await handleDelete({
+      companyID,
+      phoneNumbers
+    });
+  }
+
+  useEffect(() => {
+    if (deleteResponse?.status === 200) {
+      toast.success(deleteResponse.message);
+      const deletedContacts = table.getSelectedRowModel().rows;
+      console.log(deletedContacts);
+      const updatedData = data.filter((item) => !deletedContacts.some((row) => row.original._id === item._id))
+      console.log(updatedData);
+      setData(updatedData);
+      totalCountRef.current = totalCountRef.current - deleteResponse.count;
+      table.resetRowSelection();
+    } else if(deleteError){
+      toast.error(deleteError);
+      table.resetRowSelection();
+    }
+  },[deleteResponse,deleteError]);
 
   const table = useReactTable({
     data,
@@ -170,6 +247,7 @@ export default function ViewContactManagement() {
     onColumnVisibilityChange: setColumnVisibility,
     getFilteredRowModel: getFilteredRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
+    manualPagination: true,
     state: {
       sorting,
       pagination,
@@ -180,33 +258,33 @@ export default function ViewContactManagement() {
 
   // Get unique status values
   const uniqueStatusValues = useMemo(() => {
-    const statusColumn = table.getColumn("status")
+    const statusColumn = table.getColumn("optedIn")
 
     if (!statusColumn) return []
 
     const values = Array.from(statusColumn.getFacetedUniqueValues().keys())
 
     return values.sort();
-  }, [table.getColumn("status")?.getFacetedUniqueValues()])
+  }, [table.getColumn("optedIn")?.getFacetedUniqueValues()])
 
   // Get counts for each status
   const statusCounts = useMemo(() => {
-    const statusColumn = table.getColumn("status")
+    const statusColumn = table.getColumn("optedIn")
     if (!statusColumn) return new Map();
     return statusColumn.getFacetedUniqueValues();
-  }, [table.getColumn("status")?.getFacetedUniqueValues()])
+  }, [table.getColumn("optedIn")?.getFacetedUniqueValues()])
 
   const selectedStatuses = useMemo(() => {
-    const filterValue = table.getColumn("status")?.getFilterValue()
+    const filterValue = table.getColumn("optedIn")?.getFilterValue()
     return filterValue ?? []
-  }, [table.getColumn("status")?.getFilterValue()])
+  }, [table.getColumn("optedIn")?.getFilterValue()])
 
   const openImportContactDialog = () => {
     alert('open dialog');
   }
 
   const handleStatusChange = (checked, value) => {
-    const filterValue = table.getColumn("status")?.getFilterValue()
+    const filterValue = table.getColumn("optedIn")?.getFilterValue()
     const newFilterValue = filterValue ? [...filterValue] : []
 
     if (checked) {
@@ -218,7 +296,7 @@ export default function ViewContactManagement() {
       }
     }
 
-    table.getColumn("status")?.setFilterValue(newFilterValue.length ? newFilterValue : undefined)
+    table.getColumn("optedIn")?.setFilterValue(newFilterValue.length ? newFilterValue : undefined)
   }
 
   return (
@@ -227,7 +305,7 @@ export default function ViewContactManagement() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold">Manage Contacts</h2>
         <div className="flex items-center gap-3">
-          {/* Filter by name or email */}
+          {/* Filter by name or phone number */}
           <div className="relative">
             <input
               id={`${id}-input`}
@@ -240,7 +318,7 @@ export default function ViewContactManagement() {
                 (table.getColumn("name")?.getFilterValue() ?? "")
               }
               onChange={(e) => table.getColumn("name")?.setFilterValue(e.target.value)}
-              placeholder="Filter by name or email..."
+              placeholder="Filter by name or phone number..."
               type="text"
               aria-label="Filter by name or email" />
             <div
@@ -325,15 +403,15 @@ export default function ViewContactManagement() {
                       This action cannot be undone. This will permanently delete{" "}
                       {table.getSelectedRowModel().rows.length} selected{" "}
                       {table.getSelectedRowModel().rows.length === 1
-                        ? "row"
-                        : "rows"}
+                        ? "contact"
+                        : "contacts"}
                       .
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                 </div>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteRows}>
+                  <AlertDialogAction onClick={() => {handleDeleteRows(table.getSelectedRowModel().rows)}}>
                     Delete
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -342,13 +420,42 @@ export default function ViewContactManagement() {
           )}
         {/* Add user button */}
         <div className="divide-primary-foreground/30 inline-flex divide-x rounded-md shadow-xs rtl:space-x-reverse">
-            <Button className="rounded-none shadow-none first:rounded-s-md last:rounded-e-md focus-visible:z-10">Create Contact</Button>
-            <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button className="rounded-none shadow-none first:rounded-s-md last:rounded-e-md focus-visible:z-10" size="icon" aria-label="Options"><ChevronDownIcon size={16} aria-hidden="true" /></Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-40" align="end"><DropdownMenuItem onClick={openImportContactDialog}>Import Contacts</DropdownMenuItem></DropdownMenuContent>
-            </DropdownMenu>
+          <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button className="ml-auto cursor-pointer py-2 px-4 rounded-lg border border-emerald-600 font-medium text-sm flex items-center gap-x-2 text-white bg-emerald-600"><PlusIcon size={16} aria-hidden="true" /><span className="-mt-px">Create Contact</span></button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="sm:max-w-2xl w-full">
+                <div className="p-3">
+                  <AlertDialogTitle className="text-2xl font-semibold mb-8">Create Contact</AlertDialogTitle>
+                  
+                  <CreateContactDialog 
+                    firstName={firstName}
+                    lastName={lastName}
+                    phoneNumber={phoneNumber}
+                    optedIn={optedIn}
+                    country={country}
+                    customProperties={customProperties}
+                    setFirstName={setFirstName}
+                    setLastName={setLastName}
+                    setPhoneNumber={setPhoneNumber}
+                    setOptedIn={setOptedIn}
+                    setCountry={setCountry}
+                    addCustomProperty={addCustomProperty}
+                    removeCustomProperty={removeCustomProperty}
+                    updateCustomProperty={updateCustomProperty}
+                  />
+                </div>
+
+                <AlertDialogFooter className="border-t p-4 bg-gray-50 flex justify-end gap-4 rounded-b-lg">
+                  <AlertDialogCancel className="px-6 py-3 border rounded-lg text-base bg-white hover:bg-gray-50">
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction onClick={handleCreateContact} className="px-6 py-3 rounded-lg text-base text-white bg-green-600 hover:bg-green-700">
+                    Create Contact
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
         </div>
         </div>
       </div>
@@ -400,7 +507,7 @@ export default function ViewContactManagement() {
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
+              table.getRowModel().rows.map((row,index) => (index < ((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize) && index >= (table.getState().pagination.pageIndex * table.getState().pagination.pageSize)) && (
                 <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id} className="last:py-0">
@@ -429,14 +536,14 @@ export default function ViewContactManagement() {
           <Select
             value={table.getState().pagination.pageSize.toString()}
             onValueChange={(value) => {
-              table.setPageSize(Number(value))
+              table.setPageSize(Number(value));
             }}>
             <SelectTrigger id={id} className="w-fit whitespace-nowrap">
               <SelectValue placeholder="Select number of results" />
             </SelectTrigger>
             <SelectContent
               className="[&_*[role=option]]:ps-2 [&_*[role=option]]:pe-8 [&_*[role=option]>span]:start-auto [&_*[role=option]>span]:end-2">
-              {[5, 10, 25, 50].map((pageSize) => (
+              {[10].map((pageSize) => (
                 <SelectItem key={pageSize} value={pageSize.toString()}>
                   {pageSize}
                 </SelectItem>
@@ -527,7 +634,7 @@ export default function ViewContactManagement() {
 }
 
 function RowActions({
-  row
+  row, handleDelete
 }) {
   return (
     <DropdownMenu>
@@ -544,10 +651,6 @@ function RowActions({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuGroup>
-          <DropdownMenuItem>
-            <span>Edit</span>
-            <DropdownMenuShortcut>⌘E</DropdownMenuShortcut>
-          </DropdownMenuItem>
           <DropdownMenuItem>
             <span>Duplicate</span>
             <DropdownMenuShortcut>⌘D</DropdownMenuShortcut>
@@ -577,9 +680,39 @@ function RowActions({
           <DropdownMenuItem>Add to favorites</DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="text-destructive focus:text-destructive">
-          <span>Delete</span>
-          <DropdownMenuShortcut>⌘⌫</DropdownMenuShortcut>
+        <DropdownMenuItem 
+        className="text-destructive focus:text-destructive"
+        onSelect={(e) => e.preventDefault()}>
+          <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button  className="w-full text-left">
+                  Delete
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <div className="flex flex-col gap-2 max-sm:items-center sm:flex-row sm:gap-4">
+                  <div
+                    className="flex size-9 shrink-0 items-center justify-center rounded-full border"
+                    aria-hidden="true">
+                    <CircleAlertIcon className="opacity-80" size={16} />
+                  </div>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Are you absolutely sure?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {`This action cannot be undone. The contact for ${row.original.firstName} ${row.original.lastName}: ${row.original.phoneNumber} will be permanently deleted.`}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={()=>{}}>
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
