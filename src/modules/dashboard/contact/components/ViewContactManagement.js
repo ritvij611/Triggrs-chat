@@ -2,9 +2,11 @@ import { useEffect, useId, useMemo, useRef, useState } from "react"
 import { useCreateContact } from "@/modules/authentication/hooks/useCreateContact";
 import { useFetchContacts } from "@/modules/authentication/hooks/useFetchContacts";
 import { useDeleteContact } from "@/modules/authentication/hooks/useDeleteContact";
+import { useUpdateContact } from "@/modules/authentication/hooks/useUpdateContact";
 import { CreateContactDialog } from "./CreateContactDialog";
+import { UpdateContactDialog } from "./UpdateContactDialog";
 import { flexRender, getCoreRowModel, getFacetedUniqueValues, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable,} from "@tanstack/react-table";
-import { ChevronDownIcon, ChevronFirstIcon, ChevronLastIcon, ChevronLeftIcon, ChevronRightIcon, ChevronUpIcon, CircleAlertIcon, CircleXIcon, EllipsisIcon, FilterIcon, ListFilterIcon, PlusIcon, TrashIcon} from "lucide-react"
+import { ChevronDownIcon, ChevronFirstIcon, ChevronLastIcon, ChevronLeftIcon, ChevronRightIcon, ChevronUpIcon, CircleAlertIcon, CircleXIcon, EllipsisIcon, FilterIcon, ListFilterIcon, PlusIcon, TrashIcon, EyeIcon, PencilIcon} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,} from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
@@ -18,7 +20,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow,} from "@/components/ui/table"
 import { useRouter } from "next/router";
 import { toast } from "sonner";
-
 
 // Custom filter function for multi-column searching
 const multiColumnFilterFn = (row, columnId, filterValue) => {
@@ -107,14 +108,15 @@ const columns = [
     filterFn: statusFilterFn,
   },
 
-]
+];
 
 export default function ViewContactManagement({companyID}) {
   const { createResponse, isCreateLoading, createError, handleCreate, cancelCreate } = useCreateContact();
-  const { allContacts, totalCount, loadingContacts, contactError, fetchContacts, cancelContactsOperation } = useFetchContacts();
+  const { allContacts, totalContacts, loadingContacts, contactError, fetchContacts, cancelContactsOperation } = useFetchContacts();
   const { deleteResponse, isDeleteLoading, deleteError, handleDelete, cancelDelete } = useDeleteContact();
+  const { updateResponse, isUpdateLoading, updateError, handleUpdate, cancelUpdate } = useUpdateContact();
   const visitedPagesRef = useRef(new Set());
-  const totalCountRef = useRef(0);
+  const totalContactsRef = useRef(0);
   const id = useId()
   const [columnFilters, setColumnFilters] = useState([])
   const [columnVisibility, setColumnVisibility] = useState({})
@@ -157,24 +159,50 @@ export default function ViewContactManagement({companyID}) {
     setCustomProperties(updatedProperties);
   };
 
-  const handleCreateContact = async () => {
-    await handleCreate({
-      companyID,
-      firstName,
-      lastName,
-      phoneNumber,
-      optedIn,
-      countryCode: country.code,
-      country: country.country,
-      properties: customProperties
-    });
+  const handleCreateContact = async (execute) => {
+    if(execute)
+      await handleCreate({
+        companyID,
+        firstName,
+        lastName,
+        phoneNumber,
+        optedIn,
+        countryCode: country.code,
+        country: country.country,
+        properties: customProperties
+      });
+    setFirstName('');
+    setLastName('');
+    setPhoneNumber('');
+    setCustomProperties([{ key: "", value: "" }]);
+    setCountry({});
+    setOptedIn(false);
+  }
+
+  const handleUpdateContact = async (execute) => {
+    if(execute)
+      await handleUpdate({
+        companyID,
+        firstName,
+        lastName,
+        phoneNumber,
+        optedIn,
+        countryCode: country.countryCode,
+        properties: customProperties
+      });
+    setFirstName('');
+    setLastName('');
+    setPhoneNumber('');
+    setCustomProperties([{ key: "", value: "" }]);
+    setCountry({});
+    setOptedIn(false);
   }
   
   useEffect(() => {
     const fetch = async () => {
       const currentIndex = pagination.pageIndex;
 
-      if (companyID && !visitedPagesRef.current.has(currentIndex) && (!totalCountRef.current || data.length < totalCountRef.current)) {
+      if (companyID && !visitedPagesRef.current.has(currentIndex) && (!totalContactsRef.current || data.length < totalContactsRef.current)) {
         await fetchContacts({
           companyID,
           index: currentIndex,
@@ -195,19 +223,32 @@ export default function ViewContactManagement({companyID}) {
   useEffect(() => {
     if (allContacts) {
       setData((prev) => [...prev, ...allContacts])
-      if(!totalCountRef.current)totalCountRef.current = totalCount;
+      if(!totalContactsRef.current)totalContactsRef.current = totalContacts;
     }
   }, [allContacts]);
 
   useEffect(() => {
     if (createResponse?.message === "Contact added successfully") {
       toast.success(`Contact added successfully`);
-      setData((prev) => [...prev, createResponse.contact]);
-      totalCountRef.current = totalCountRef.current + 1;
+      setData((prev) => [createResponse.contact, ...prev]);
+      totalContactsRef.current = totalContactsRef.current + 1;
     } else if(createError){
       toast.error(deleteError);
     }
   },[createResponse,createError]);
+
+  useEffect(() => {
+    if (updateResponse?.message === "Contact updated successfully") {
+      
+      const updatedData = data.map(contact =>
+      contact._id === updateResponse.contact._id ? updateResponse.contact : contact
+    );
+      setData(updatedData);
+      toast.success(updateResponse.message);
+    } else if(updateError){
+      toast.error(updateError);
+    }
+  },[updateResponse, updateError]);
 
   const handleDeleteRows = async() => {
     const selectedRows = table.getSelectedRowModel().rows;
@@ -226,13 +267,52 @@ export default function ViewContactManagement({companyID}) {
       const updatedData = data.filter((item) => !deletedContacts.some((row) => row.original._id === item._id))
       console.log(updatedData);
       setData(updatedData);
-      totalCountRef.current = totalCountRef.current - deleteResponse.count;
+      totalContactsRef.current = totalContactsRef.current - deleteResponse.count;
       table.resetRowSelection();
     } else if(deleteError){
       toast.error(deleteError);
       table.resetRowSelection();
     }
   },[deleteResponse,deleteError]);
+
+  const getUpdateDialogProps = () => {
+
+    return {
+      firstName,
+      lastName,
+      phoneNumber,
+      optedIn,
+      customProperties,
+      country,
+      setFirstName,
+      setLastName,
+      setOptedIn,
+      setPhoneNumber,
+      addCustomProperty,
+      removeCustomProperty,
+      updateCustomProperty
+    }
+  }
+
+  const prepareEditDialog = (row) => {
+  const original = row.original;
+  setCountry({ country: original.country, countryCode: original.countryCode });
+  setFirstName(original.firstName);
+  setLastName(original.lastName);
+  setOptedIn(original.optedIn);
+  setPhoneNumber(original.phoneNumber);
+  const propertiesArray = Object.entries(original.properties || {}).map(([key, value]) => ({
+    key,
+    value
+  }));
+  setCustomProperties(propertiesArray);
+};
+
+
+  const dynamicPageCount =
+  data.length < totalContactsRef.current
+    ? Math.ceil(totalContactsRef.current / pagination.pageSize)
+    : undefined;
 
   const table = useReactTable({
     data,
@@ -247,7 +327,8 @@ export default function ViewContactManagement({companyID}) {
     onColumnVisibilityChange: setColumnVisibility,
     getFilteredRowModel: getFilteredRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
-    manualPagination: true,
+    pageCount: dynamicPageCount,
+    manualPagination: data.length <= totalContactsRef.current,
     state: {
       sorting,
       pagination,
@@ -375,6 +456,34 @@ export default function ViewContactManagement({companyID}) {
               </div>
             </PopoverContent>
           </Popover>
+          {/* Edit button */}
+          {table.getSelectedRowModel().rows.length == 1 && (<div className="divide-primary-foreground/30 inline-flex divide-x rounded-md shadow-xs rtl:space-x-reverse">
+          <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" onClick={() => {prepareEditDialog(table.getSelectedRowModel().rows[0])}}                >
+                  <PencilIcon size={16} aria-hidden="true" /> Edit <span>/</span><EyeIcon size={16} aria-hidden="true" /> View
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="sm:max-w-2xl w-full">
+                <div className="p-3">
+                  <AlertDialogTitle className="text-2xl font-semibold mb-8">Update Contact</AlertDialogTitle>
+                  
+                  <UpdateContactDialog 
+                    {...getUpdateDialogProps()}
+                  />
+                </div>
+
+                <AlertDialogFooter className="border-t p-4 bg-gray-50 flex justify-end gap-4 rounded-b-lg">
+                  <AlertDialogCancel onClick={() => handleUpdateContact(false)} className="px-6 py-3 border rounded-lg text-base bg-white hover:bg-gray-50">
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction onClick={() => handleUpdateContact(true)} className="px-6 py-3 rounded-lg text-base text-white bg-green-600 hover:bg-green-700">
+                    Update Contact
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+        </div>)}
           {/* Delete button */}
           {table.getSelectedRowModel().rows.length > 0 && (
             <AlertDialog>
@@ -447,10 +556,10 @@ export default function ViewContactManagement({companyID}) {
                 </div>
 
                 <AlertDialogFooter className="border-t p-4 bg-gray-50 flex justify-end gap-4 rounded-b-lg">
-                  <AlertDialogCancel className="px-6 py-3 border rounded-lg text-base bg-white hover:bg-gray-50">
+                  <AlertDialogCancel onClick={() => handleCreateContact(false)}className="px-6 py-3 border rounded-lg text-base bg-white hover:bg-gray-50">
                     Cancel
                   </AlertDialogCancel>
-                  <AlertDialogAction onClick={handleCreateContact} className="px-6 py-3 rounded-lg text-base text-white bg-green-600 hover:bg-green-700">
+                  <AlertDialogAction onClick={() => handleCreateContact(true)} className="px-6 py-3 rounded-lg text-base text-white bg-green-600 hover:bg-green-700">
                     Create Contact
                   </AlertDialogAction>
                 </AlertDialogFooter>

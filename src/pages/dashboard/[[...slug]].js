@@ -72,7 +72,7 @@ export default function DashboardPages(props) {
             : router.query.slug?.join('/') == 'contacts'
             ? <ContactManagementComponent />
             : router.query?.slug?.join('/') == 'campaigns'
-            ? <CampaignManagementComponent />
+            ? <CampaignManagementComponent companyID={'6805ce5c8ceaf44cf44a9718'}/>
             : router.query.slug?.join('/') == 'agents'
             ? <AgentManagementComponent />
             : <MainDashboardComponent />

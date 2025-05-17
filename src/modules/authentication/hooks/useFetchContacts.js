@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 
 export const useFetchContacts = () => {
   const [allContacts, setAllContacts] = useState([]);
-  const [totalCount, setTotalCount] = useState();
+  const [totalContacts, setTotalContacts] = useState();
   const [loadingContacts, setLoadingContacts] = useState(false);
   const [contactError, setContactError] = useState(null);
 
@@ -32,7 +32,7 @@ export const useFetchContacts = () => {
 
       const result = await response.json();
       setAllContacts(result.Contacts || []);
-      setTotalCount(result.totalCount || 0);
+      setTotalContacts(result.totalCount || 0);
       return result;
     } catch (err) {
       if (err.name === 'AbortError') {
@@ -53,5 +53,5 @@ export const useFetchContacts = () => {
     }
   };
 
-  return { allContacts, totalCount, loadingContacts, contactError, fetchContacts, cancelContactsOperation };
+  return { allContacts, totalContacts, loadingContacts, contactError, fetchContacts, cancelContactsOperation };
 };

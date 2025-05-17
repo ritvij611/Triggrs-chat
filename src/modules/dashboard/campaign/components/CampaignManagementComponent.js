@@ -1,4 +1,10 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react"
+import { useCreateCampaign } from "@/modules/authentication/hooks/useCreateCampaign";
+import { useFetchCampaigns } from "@/modules/authentication/hooks/useFetchCampaigns";
+import { useFetchContacts } from "@/modules/authentication/hooks/useFetchContacts";
+import { useFetchTemplates } from "@/modules/authentication/hooks/useFetchTemplates";
+import CreateCampaignDialog from "./CreateCampaignComponent";
+import { useDeleteCampaign } from "@/modules/authentication/hooks/useDeleteCampaign";
 import { flexRender, getCoreRowModel, getFacetedUniqueValues, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable,} from "@tanstack/react-table";
 import { ChevronDownIcon, ChevronFirstIcon, ChevronLastIcon, ChevronLeftIcon, ChevronRightIcon, ChevronUpIcon, CircleAlertIcon, CircleXIcon, EllipsisIcon, FilterIcon, ListFilterIcon, PlusIcon, TrashIcon} from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -13,14 +19,22 @@ import { Popover, PopoverContent, PopoverTrigger,} from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow,} from "@/components/ui/table"
 import { useRouter } from "next/router";
+import { toast } from "sonner";
+import { all } from "axios";
+
 
 // Custom filter function for multi-column searching
 const multiColumnFilterFn = (row, columnId, filterValue) => {
-  const searchableRowContent =
-    `${row.original.name} ${row.original.email}`.toLowerCase()
-  const searchTerm = (filterValue ?? "").toLowerCase()
-  return searchableRowContent.includes(searchTerm);
-}
+  const campaignName = row.original.campaignName?.toLowerCase() || "";
+  const templateName = row.original.templateID.templateName?.toLowerCase() || "";
+
+  const search = filterValue.toLowerCase();
+  return (
+    campaignName.includes(search) ||
+    templateName.includes(search)
+  );
+};
+
 
 const statusFilterFn = (
   row,
@@ -30,6 +44,16 @@ const statusFilterFn = (
   if (!filterValue?.length) return true
   const status = row.getValue(columnId)
   return filterValue.includes(status);
+}
+
+const getFormattedDate = (isoDate) =>{ 
+  const date = new Date(isoDate);
+  const formattedDate = date.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+  return formattedDate;
 }
 
 const columns = [
@@ -57,72 +81,44 @@ const columns = [
     enableHiding: false,
   },
   {
-    header: "Name",
-    accessorKey: "name",
+    header: "Campaign Name",
+    accessorKey: "campaignName",
     cell: ({ row }) => (
-      <div className="font-medium">{row.getValue("name")}</div>
+      <div className="font-medium">${row.original.campaignName}</div>
     ),
     size: 180,
     filterFn: multiColumnFilterFn,
     enableHiding: false,
   },
   {
-    header: "Email",
-    accessorKey: "email",
-    size: 220,
-  },
-  {
-    header: "Location",
-    accessorKey: "location",
+    header: "Template Name",
+    accessorKey: "templateName",
     cell: ({ row }) => (
-      <div>
-        <span className="text-lg leading-none">{row.original.flag}</span>{" "}
-        {row.getValue("location")}
-      </div>
+      <div className="font-medium">${row.original.templateID.templateName}</div>
     ),
     size: 180,
-  },
-  {
-    header: "Status",
-    accessorKey: "status",
-    cell: ({ row }) => (
-      <Badge
-        className={cn(row.getValue("status") === "Inactive" ?
-          "bg-red-600/20 text-red-600"
-        : "bg-green-600/20 text-green-600")}>
-        {row.getValue("status")}
-      </Badge>
-    ),
-    size: 100,
-    filterFn: statusFilterFn,
-  },
-  {
-    header: "Performance",
-    accessorKey: "performance",
-  },
-  {
-    header: "Balance",
-    accessorKey: "balance",
-    cell: ({ row }) => {
-      const amount = parseFloat(row.getValue("balance"))
-      const formatted = new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-      }).format(amount)
-      return formatted
-    },
-    size: 120,
-  },
-  {
-    id: "actions",
-    header: () => <span className="sr-only">Actions</span>,
-    cell: ({ row }) => <RowActions row={row} />,
-    size: 60,
+    filterFn: multiColumnFilterFn,
     enableHiding: false,
   },
+  {
+    header: "Created On",
+    accessorKey: "createdAt",
+    cell: ({ row }) => (
+      <div className="font-medium">{getFormattedDate(row.original.createdAt)}</div>
+    ),
+    
+  },
+
 ]
 
-export default function CampaignManagementComponent() {
+export default function CampaignManagementComponent({companyID}) {
+  const { createResponse, isCreateLoading, createError, handleCreate, cancelCreate } = useCreateCampaign();
+  const { allContacts, totalContacts, loadingContacts, contactError, fetchContacts, cancelContactsOperation } = useFetchContacts();
+  const { allCampaigns, totalCampaigns, loadingCampaigns, campaignError, fetchCampaigns, cancelCampaignsOperation } = useFetchCampaigns();
+  const { allTemplates, totalTemplates, loadingTemplates, templateError, fetchTemplates, cancelTemplatesOperation } = useFetchTemplates();
+  const { deleteResponse, isDeleteLoading, deleteError, handleDelete, cancelDelete } = useDeleteCampaign();
+  const visitedPagesRef = useRef(new Set());
+  const totalCampaignsRef = useRef(0);
   const id = useId()
   const [columnFilters, setColumnFilters] = useState([])
   const [columnVisibility, setColumnVisibility] = useState({})
@@ -131,6 +127,9 @@ export default function CampaignManagementComponent() {
     pageIndex: 0,
     pageSize: 10,
   })
+
+  const [open, setOpen] = useState(false);
+
   const inputRef = useRef(null)
 
   const [sorting, setSorting] = useState([
@@ -141,21 +140,134 @@ export default function CampaignManagementComponent() {
   ])
 
   const [data, setData] = useState([])
-  useEffect(() => {
-    async function fetchPosts() {
-      const res = await fetch("https://res.cloudinary.com/dlzlfasou/raw/upload/users-01_fertyx.json")
-      const data = await res.json()
-      setData(data)
-    }
-    fetchPosts()
-  }, [])
+  const [templates, setTemplates] = useState([]);
+  const [contacts, setContacts] = useState([]);
+  const [loadTemplates, setLoadTemplates] = useState(false);
+  const [loadContacts, setLoadContacts] = useState(false);
 
-  const handleDeleteRows = () => {
-    const selectedRows = table.getSelectedRowModel().rows
-    const updatedData = data.filter((item) => !selectedRows.some((row) => row.original.id === item.id))
-    setData(updatedData)
-    table.resetRowSelection()
+  const handleCreateCampaign = async () => {
+    await handleCreate({
+      companyID,
+      firstName,
+      lastName,
+      phoneNumber,
+      optedIn,
+      countryCode: country.code,
+      country: country.country,
+      properties: customProperties
+    });
   }
+  
+  useEffect(() => {
+    const fetch = async () => {
+      const currentIndex = pagination.pageIndex;
+
+      if (companyID && !visitedPagesRef.current.has(currentIndex) && (!totalCampaignsRef.current || data.length < totalCampaignsRef.current)) {
+        await fetchCampaigns({
+          companyID,
+          index: currentIndex,
+          limit: pagination.pageSize,
+        });
+        visitedPagesRef.current.add(currentIndex);
+      }
+    };
+    fetch();
+  }, [pagination.pageIndex, pagination.pageSize, companyID]);
+
+  useEffect(() => {
+    if(campaignError){
+      toast.error(campaignError);
+    }
+  }, [campaignError]);
+
+  useEffect(() => {
+    if (allCampaigns) {
+      setData((prev) => [...prev, ...allCampaigns])
+      if(!totalCampaignsRef.current)totalCampaignsRef.current = totalCampaigns;
+    }
+  }, [allCampaigns]);
+
+  useEffect(() => {
+    if (createResponse?.message === "Campaign added successfully") {
+      toast.success(`Campaign added successfully`);
+      setData((prev) => [createResponse.campaign, ...prev]);
+      totalCampaignsRef.current = totalCampaignsRef.current + 1;
+    } else if(createError){
+      toast.error(deleteError);
+    }
+  },[createResponse,createError]);
+
+  const handleDeleteRows = async() => {
+    const selectedRows = table.getSelectedRowModel().rows;
+    const campaignNames = selectedRows.map(row => row.original.campaignName);
+    await handleDelete({
+      companyID,
+      campaignNames
+    });
+  }
+
+  useEffect(() => {
+    if (deleteResponse?.status === 200) {
+      toast.success(deleteResponse.message);
+      const deletedCampaigns = table.getSelectedRowModel().rows;
+
+      const updatedData = data.filter((item) => !deletedCampaigns.some((row) => row.original._id === item._id))
+      
+      setData(updatedData);
+      totalCampaignsRef.current = totalCampaignsRef.current - deleteResponse.count;
+      table.resetRowSelection();
+    } else if(deleteError){
+      toast.error(deleteError);
+      table.resetRowSelection();
+    }
+  },[deleteResponse,deleteError]);
+
+  useEffect(() => {
+    if(!loadTemplates) return;
+    const fetch = async () => {
+      if (companyID) {
+        await fetchTemplates({
+          companyID,
+          index: templates.length / 10,
+          limit: 10,
+        });
+      }
+    };
+    fetch();
+  }, [loadTemplates]);
+
+  useEffect(() => {
+    if(!loadContacts) return;
+    const fetch = async () => {
+      if (companyID) {
+        await fetchContacts({
+          companyID,
+          index: contacts.length / 10,
+          limit: 10,
+        });
+      }
+    };
+    fetch();
+  }, [loadContacts]);
+
+  useEffect(() => {
+    if(allTemplates){
+      setTemplates((prev) => [...prev, ...allTemplates]);
+      setLoadTemplates(false)
+    }
+  },[allTemplates]);
+
+  useEffect(() => {
+    if(allContacts){
+      setContacts((prev) => [...prev, ...allContacts])
+      setLoadContacts(false);
+    }
+  },[allContacts]);
+
+  const dynamicPageCount =
+  data.length < totalCampaignsRef.current
+    ? Math.ceil(totalCampaignsRef.current / pagination.pageSize)
+    : undefined;
 
   const table = useReactTable({
     data,
@@ -170,6 +282,8 @@ export default function CampaignManagementComponent() {
     onColumnVisibilityChange: setColumnVisibility,
     getFilteredRowModel: getFilteredRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
+    pageCount: dynamicPageCount,
+    manualPagination: data.length <= totalCampaignsRef.current,
     state: {
       sorting,
       pagination,
@@ -180,33 +294,30 @@ export default function CampaignManagementComponent() {
 
   // Get unique status values
   const uniqueStatusValues = useMemo(() => {
-    const statusColumn = table.getColumn("status")
+    const statusColumn = table.getColumn("optedIn")
 
     if (!statusColumn) return []
 
     const values = Array.from(statusColumn.getFacetedUniqueValues().keys())
 
     return values.sort();
-  }, [table.getColumn("status")?.getFacetedUniqueValues()])
+  }, [table.getColumn("optedIn")?.getFacetedUniqueValues()])
 
   // Get counts for each status
   const statusCounts = useMemo(() => {
-    const statusColumn = table.getColumn("status")
+    const statusColumn = table.getColumn("createdAt")
     if (!statusColumn) return new Map();
     return statusColumn.getFacetedUniqueValues();
-  }, [table.getColumn("status")?.getFacetedUniqueValues()])
+  }, [table.getColumn("createdAt")?.getFacetedUniqueValues()])
 
   const selectedStatuses = useMemo(() => {
-    const filterValue = table.getColumn("status")?.getFilterValue()
+    const filterValue = table.getColumn("cratedAt")?.getFilterValue()
     return filterValue ?? []
-  }, [table.getColumn("status")?.getFilterValue()])
+  }, [table.getColumn("createdAt")?.getFilterValue()])
 
-  const openImportContactDialog = () => {
-    alert('open dialog');
-  }
 
   const handleStatusChange = (checked, value) => {
-    const filterValue = table.getColumn("status")?.getFilterValue()
+    const filterValue = table.getColumn("createdAt")?.getFilterValue()
     const newFilterValue = filterValue ? [...filterValue] : []
 
     if (checked) {
@@ -218,41 +329,42 @@ export default function CampaignManagementComponent() {
       }
     }
 
-    table.getColumn("status")?.setFilterValue(newFilterValue.length ? newFilterValue : undefined)
+    table.getColumn("createdAt")?.setFilterValue(newFilterValue.length ? newFilterValue : undefined)
   }
 
   return (
-    <div className="space-y-4 max-w-6xl mt-4 mx-auto">
+    
+    <div className="space-y-4 max-w-6xl mx-auto pt-4">
       {/* Filters */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold">Manage Campaigns</h2>
         <div className="flex items-center gap-3">
-          {/* Filter by name or email */}
+          {/* Filter by name or phone number */}
           <div className="relative">
             <input
               id={`${id}-input`}
               ref={inputRef}
               className={cn(
                 "peer min-w-60 ps-9 border border-gray-300 rounded-lg py-2 text-sm focus:border-emerald-600 ",
-                Boolean(table.getColumn("name")?.getFilterValue()) && "pe-9"
+                Boolean(table.getColumn("campaignName")?.getFilterValue()) && "pe-9"
               )}
               value={
-                (table.getColumn("name")?.getFilterValue() ?? "")
+                (table.getColumn("campaignName")?.getFilterValue() ?? "")
               }
-              onChange={(e) => table.getColumn("name")?.setFilterValue(e.target.value)}
-              placeholder="Filter by name or email..."
+              onChange={(e) => table.getColumn("campaignName")?.setFilterValue(e.target.value)}
+              placeholder="Filter by name..."
               type="text"
-              aria-label="Filter by name or email" />
+              aria-label="Filter by name" />
             <div
               className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 peer-disabled:opacity-50">
               <ListFilterIcon size={16} aria-hidden="true" />
             </div>
-            {Boolean(table.getColumn("name")?.getFilterValue()) && (
+            {Boolean(table.getColumn("campaignName")?.getFilterValue()) && (
               <button
                 className="text-muted-foreground/80 hover:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 absolute inset-y-0 end-0 flex h-full w-9 items-center justify-center rounded-e-md transition-[color,box-shadow] outline-none focus:z-10 focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
                 aria-label="Clear filter"
                 onClick={() => {
-                  table.getColumn("name")?.setFilterValue("")
+                  table.getColumn("campaignName")?.setFilterValue("")
                   if (inputRef.current) {
                     inputRef.current.focus()
                   }
@@ -325,15 +437,15 @@ export default function CampaignManagementComponent() {
                       This action cannot be undone. This will permanently delete{" "}
                       {table.getSelectedRowModel().rows.length} selected{" "}
                       {table.getSelectedRowModel().rows.length === 1
-                        ? "row"
-                        : "rows"}
+                        ? "campaign"
+                        : "campaigns"}
                       .
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                 </div>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteRows}>
+                  <AlertDialogAction onClick={() => {handleDeleteRows(table.getSelectedRowModel().rows)}}>
                     Delete
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -341,7 +453,39 @@ export default function CampaignManagementComponent() {
             </AlertDialog>
           )}
         {/* Add user button */}
-        <button onClick={() => router.push('/dashboard/campaigns/create')} className="ml-auto cursor-pointer py-2 px-4 rounded-lg border border-emerald-600 font-medium text-sm flex items-center gap-x-2 text-white bg-emerald-600"><PlusIcon size={16} aria-hidden="true" /><span className="-mt-px">Create Campaign</span></button>
+        <div className="divide-primary-foreground/30 inline-flex divide-x rounded-md shadow-xs rtl:space-x-reverse">
+          <AlertDialog open={open} onOpenChange={setOpen}>
+      <AlertDialogTrigger asChild>
+        <button
+          onClick={() => setOpen(true)}
+          className="ml-auto cursor-pointer py-2 px-4 rounded-lg border border-emerald-600 font-medium text-sm flex items-center gap-x-2 text-white bg-emerald-600"
+        >
+          <PlusIcon size={16} aria-hidden="true" />
+          <span className="-mt-px">Create Contact</span>
+        </button>
+      </AlertDialogTrigger>
+      <AlertDialogContent className="sm:max-w-2xl w-full">
+        <div className="px-3">
+          <CreateCampaignDialog 
+          loadTempltes 
+          templates={templates}
+          contacts={contacts}
+          totalTemplates={totalTemplates}
+          totalContacts={totalContacts}
+          loadContacts={loadContacts}
+          loadTemplates={loadTemplates}
+          setLoadContacts={setLoadContacts}
+          setLoadTemplates={setLoadTemplates}
+          handleCreate={handleCreate}
+          setOpen={setOpen}
+          />
+        </div>
+          <AlertDialogCancel className="px-6 py-3 border rounded-lg text-base bg-white hover:bg-gray-50">
+            Cancel
+          </AlertDialogCancel>
+      </AlertDialogContent>
+    </AlertDialog>
+        </div>
         </div>
       </div>
       {/* Table */}
@@ -392,7 +536,7 @@ export default function CampaignManagementComponent() {
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
+              table.getRowModel().rows.map((row,index) => (index < ((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize) && index >= (table.getState().pagination.pageIndex * table.getState().pagination.pageSize)) && (
                 <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id} className="last:py-0">
@@ -421,14 +565,14 @@ export default function CampaignManagementComponent() {
           <Select
             value={table.getState().pagination.pageSize.toString()}
             onValueChange={(value) => {
-              table.setPageSize(Number(value))
+              table.setPageSize(Number(value));
             }}>
             <SelectTrigger id={id} className="w-fit whitespace-nowrap">
               <SelectValue placeholder="Select number of results" />
             </SelectTrigger>
             <SelectContent
               className="[&_*[role=option]]:ps-2 [&_*[role=option]]:pe-8 [&_*[role=option]>span]:start-auto [&_*[role=option]>span]:end-2">
-              {[5, 10, 25, 50].map((pageSize) => (
+              {[10].map((pageSize) => (
                 <SelectItem key={pageSize} value={pageSize.toString()}>
                   {pageSize}
                 </SelectItem>
@@ -519,7 +663,7 @@ export default function CampaignManagementComponent() {
 }
 
 function RowActions({
-  row
+  row, handleDelete
 }) {
   return (
     <DropdownMenu>
@@ -536,10 +680,6 @@ function RowActions({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuGroup>
-          <DropdownMenuItem>
-            <span>Edit</span>
-            <DropdownMenuShortcut>⌘E</DropdownMenuShortcut>
-          </DropdownMenuItem>
           <DropdownMenuItem>
             <span>Duplicate</span>
             <DropdownMenuShortcut>⌘D</DropdownMenuShortcut>
@@ -569,9 +709,39 @@ function RowActions({
           <DropdownMenuItem>Add to favorites</DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="text-destructive focus:text-destructive">
-          <span>Delete</span>
-          <DropdownMenuShortcut>⌘⌫</DropdownMenuShortcut>
+        <DropdownMenuItem 
+        className="text-destructive focus:text-destructive"
+        onSelect={(e) => e.preventDefault()}>
+          <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button  className="w-full text-left">
+                  Delete
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <div className="flex flex-col gap-2 max-sm:items-center sm:flex-row sm:gap-4">
+                  <div
+                    className="flex size-9 shrink-0 items-center justify-center rounded-full border"
+                    aria-hidden="true">
+                    <CircleAlertIcon className="opacity-80" size={16} />
+                  </div>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Are you absolutely sure?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {`This action cannot be undone. The campaign for ${row.original.campaignName} will be permanently deleted.`}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={()=>{}}>
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

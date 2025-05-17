@@ -122,10 +122,10 @@ const getFormattedDate = (isoDate) =>{
 export default function TemplateComponent({companyID}) {
   const [data, setData] = useState([]);
   const visitedPagesRef = useRef(new Set());
-  const totalCountRef = useRef(0);
+  const totalTemplatesRef = useRef(0);
   const [deletedTemplate, setDeletedTemplate] = useState('');
   const [syncTemplate, setSyncTemplate] = useState('');
-  const { allTemplates, totalCount, loadingTemplates, templateError, fetchTemplates, cancelTemplatesOperation } = useFetchTemplates();
+  const { allTemplates, totalTemplates, loadingTemplates, templateError, fetchTemplates, cancelTemplatesOperation } = useFetchTemplates();
   const { deleteResponse, isDeleteLoading, deleteError, handleDelete, cancelDelete } = useDeleteTemplate();
   const { syncResponse, isSyncLoading, syncError, handleSync, cancelSync } = useSyncTemplate();
   const id = useId();
@@ -149,7 +149,7 @@ export default function TemplateComponent({companyID}) {
     const fetch = async () => {
       const currentIndex = pagination.pageIndex;
 
-      if (companyID && !visitedPagesRef.current.has(currentIndex) && (!totalCountRef.current || data.length < totalCountRef.current)) {
+      if (companyID && !visitedPagesRef.current.has(currentIndex) && (!totalTemplatesRef.current || data.length < totalTemplatesRef.current)) {
         await fetchTemplates({
           companyID,
           index: currentIndex,
@@ -174,7 +174,7 @@ export default function TemplateComponent({companyID}) {
       toast.success(`Template ${deletedTemplate} Deleted Successfully`);
       const updatedData = data.filter((item) => item.templateName !== deletedTemplate);
       setData(updatedData);
-      totalCountRef.current = totalCountRef.current - 1;
+      totalTemplatesRef.current = totalTemplatesRef.current - 1;
       setDeletedTemplate('');
     } else if(deleteError){
       toast.error(deleteError);
@@ -185,7 +185,7 @@ export default function TemplateComponent({companyID}) {
   useEffect(() => {
     if (allTemplates) {
       setData((prev) => [...prev, ...allTemplates]);
-      if(!totalCountRef.current)totalCountRef.current = totalCount;
+      if(!totalTemplatesRef.current)totalTemplatesRef.current = totalTemplates;
     }
   }, [allTemplates]);
 
@@ -384,19 +384,15 @@ export default function TemplateComponent({companyID}) {
             View
           </button>
         </AlertDialogTrigger>
-        <AlertDialogContent>
-          <div className="flex flex-col gap-2 max-sm:items-center sm:flex-row sm:gap-4">
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                Template Preview
-              </AlertDialogTitle>
-              <AlertDialogDescription>
+        <AlertDialogContent className="sm:max-w-md w-full">
+          <div className="flex flex-col gap-1 max-sm:items-center sm:flex-row sm:gap-1">
+              <div className="p-3">
+              <AlertDialogTitle className='pb-2'>Template Preview</AlertDialogTitle>
                 <PreviewPartComponent 
                   components
                   {...decodeComponents(row?.getValue("components"))}
                   />
-              </AlertDialogDescription>
-            </AlertDialogHeader>
+                  </div>
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Close</AlertDialogCancel>
@@ -409,8 +405,8 @@ export default function TemplateComponent({companyID}) {
 ]
 
   const dynamicPageCount =
-  data.length < totalCountRef.current
-    ? Math.ceil(totalCountRef.current / pagination.pageSize)
+  data.length < totalTemplatesRef.current
+    ? Math.ceil(totalTemplatesRef.current / pagination.pageSize)
     : undefined;
 
 
@@ -426,7 +422,7 @@ export default function TemplateComponent({companyID}) {
   onColumnFiltersChange: setColumnFilters,
   onColumnVisibilityChange: setColumnVisibility,
   pageCount: dynamicPageCount,
-  manualPagination: data.length <= totalCountRef.current,
+  manualPagination: data.length <= totalTemplatesRef.current,
   state: {
     sorting,
     pagination,

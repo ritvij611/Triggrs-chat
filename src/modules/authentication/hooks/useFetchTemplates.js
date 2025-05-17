@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 
 export const useFetchTemplates = () => {
   const [allTemplates, setAllTemplates] = useState([]);
-  const [totalCount, setTotalCount] = useState();
+  const [totalTemplates, setTotalTemplates] = useState();
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [templateError, setTemplateError] = useState(null);
 
@@ -32,7 +32,7 @@ export const useFetchTemplates = () => {
 
       const result = await response.json();
       setAllTemplates(result.templates || []);
-      setTotalCount(result.totalCount || 0);
+      setTotalTemplates(result.totalCount || 0);
       return result;
     } catch (err) {
       if (err.name === 'AbortError') {
@@ -53,5 +53,5 @@ export const useFetchTemplates = () => {
     }
   };
 
-  return { allTemplates, totalCount, loadingTemplates, templateError, fetchTemplates, cancelTemplatesOperation };
+  return { allTemplates, totalTemplates, loadingTemplates, templateError, fetchTemplates, cancelTemplatesOperation };
 };
