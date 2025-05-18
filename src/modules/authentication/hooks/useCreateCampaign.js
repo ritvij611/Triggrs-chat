@@ -21,10 +21,8 @@ export const useCreateCampaign = () => {
         setCreateError(null);
         setCreateResponse(null);
 
-        try {
-            console.log({...query});
-            
-            const res = await fetch(`/api/camapigns/create-new`, {
+        try {            
+            const res = await fetch(`/api/campaigns/create-new`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

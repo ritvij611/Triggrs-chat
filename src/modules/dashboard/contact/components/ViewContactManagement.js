@@ -233,7 +233,7 @@ export default function ViewContactManagement({companyID}) {
       setData((prev) => [createResponse.contact, ...prev]);
       totalContactsRef.current = totalContactsRef.current + 1;
     } else if(createError){
-      toast.error(deleteError);
+      toast.error(createError);
     }
   },[createResponse,createError]);
 

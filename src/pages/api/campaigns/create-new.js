@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   const environment = EnvironmentFactory.getEnvironment(process.env.STAGE);
   
   try {
-    const response = await axios.post(`${environment?.config?.wa?.apiUrl}/camapaigns/create`,
+    const response = await axios.post(`${environment?.config?.wa?.apiUrl}/campaigns/create`,
       req.body,
       {
       headers: {

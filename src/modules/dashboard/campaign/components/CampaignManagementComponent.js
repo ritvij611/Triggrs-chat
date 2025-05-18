@@ -3,7 +3,7 @@ import { useCreateCampaign } from "@/modules/authentication/hooks/useCreateCampa
 import { useFetchCampaigns } from "@/modules/authentication/hooks/useFetchCampaigns";
 import { useFetchContacts } from "@/modules/authentication/hooks/useFetchContacts";
 import { useFetchTemplates } from "@/modules/authentication/hooks/useFetchTemplates";
-import CreateCampaignDialog from "./CreateCampaignComponent";
+import CreateCampaignDialog from "./CreateCampaignDialog";
 import { useDeleteCampaign } from "@/modules/authentication/hooks/useDeleteCampaign";
 import { flexRender, getCoreRowModel, getFacetedUniqueValues, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable,} from "@tanstack/react-table";
 import { ChevronDownIcon, ChevronFirstIcon, ChevronLastIcon, ChevronLeftIcon, ChevronRightIcon, ChevronUpIcon, CircleAlertIcon, CircleXIcon, EllipsisIcon, FilterIcon, ListFilterIcon, PlusIcon, TrashIcon} from "lucide-react"
@@ -56,61 +56,6 @@ const getFormattedDate = (isoDate) =>{
   return formattedDate;
 }
 
-const columns = [
-  {
-    id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        className={'border border-gray-400'}
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all" />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        className={'border border-gray-400'}
-        aria-label="Select row" />
-    ),
-    size: 28,
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
-    header: "Campaign Name",
-    accessorKey: "campaignName",
-    cell: ({ row }) => (
-      <div className="font-medium">${row.original.campaignName}</div>
-    ),
-    size: 180,
-    filterFn: multiColumnFilterFn,
-    enableHiding: false,
-  },
-  {
-    header: "Template Name",
-    accessorKey: "templateName",
-    cell: ({ row }) => (
-      <div className="font-medium">${row.original.templateID.templateName}</div>
-    ),
-    size: 180,
-    filterFn: multiColumnFilterFn,
-    enableHiding: false,
-  },
-  {
-    header: "Created On",
-    accessorKey: "createdAt",
-    cell: ({ row }) => (
-      <div className="font-medium">{getFormattedDate(row.original.createdAt)}</div>
-    ),
-    
-  },
-
-]
-
 export default function CampaignManagementComponent({companyID}) {
   const { createResponse, isCreateLoading, createError, handleCreate, cancelCreate } = useCreateCampaign();
   const { allContacts, totalContacts, loadingContacts, contactError, fetchContacts, cancelContactsOperation } = useFetchContacts();
@@ -145,18 +90,7 @@ export default function CampaignManagementComponent({companyID}) {
   const [loadTemplates, setLoadTemplates] = useState(false);
   const [loadContacts, setLoadContacts] = useState(false);
 
-  const handleCreateCampaign = async () => {
-    await handleCreate({
-      companyID,
-      firstName,
-      lastName,
-      phoneNumber,
-      optedIn,
-      countryCode: country.code,
-      country: country.country,
-      properties: customProperties
-    });
-  }
+  const [deletedRow, setDeletedRow] = useState();
   
   useEffect(() => {
     const fetch = async () => {
@@ -188,37 +122,33 @@ export default function CampaignManagementComponent({companyID}) {
   }, [allCampaigns]);
 
   useEffect(() => {
-    if (createResponse?.message === "Campaign added successfully") {
+    if (createResponse?.status === 200) {
       toast.success(`Campaign added successfully`);
       setData((prev) => [createResponse.campaign, ...prev]);
       totalCampaignsRef.current = totalCampaignsRef.current + 1;
+      setOpen(false);
     } else if(createError){
-      toast.error(deleteError);
+      toast.error(createError);
+      setOpen(false);
     }
   },[createResponse,createError]);
 
-  const handleDeleteRows = async() => {
-    const selectedRows = table.getSelectedRowModel().rows;
-    const campaignNames = selectedRows.map(row => row.original.campaignName);
+  const handleDeleteRows = async(row) => {
+    setDeletedRow(row)
     await handleDelete({
       companyID,
-      campaignNames
+      campaignName: row.original.campaignName
     });
   }
 
   useEffect(() => {
     if (deleteResponse?.status === 200) {
       toast.success(deleteResponse.message);
-      const deletedCampaigns = table.getSelectedRowModel().rows;
-
-      const updatedData = data.filter((item) => !deletedCampaigns.some((row) => row.original._id === item._id))
-      
+      const updatedData = data.filter((item) => item._id !== deletedRow.original._id)
       setData(updatedData);
-      totalCampaignsRef.current = totalCampaignsRef.current - deleteResponse.count;
-      table.resetRowSelection();
+      totalCampaignsRef.current = totalCampaignsRef.current - deleteResponse.count;  
     } else if(deleteError){
       toast.error(deleteError);
-      table.resetRowSelection();
     }
   },[deleteResponse,deleteError]);
 
@@ -264,6 +194,107 @@ export default function CampaignManagementComponent({companyID}) {
     }
   },[allContacts]);
 
+  const columns = [
+  // {
+  //   id: "select",
+  //   header: ({ table }) => (
+  //     <Checkbox
+  //       checked={
+  //         table.getIsAllPageRowsSelected() ||
+  //         (table.getIsSomePageRowsSelected() && "indeterminate")
+  //       }
+  //       className={'border border-gray-400'}
+  //       onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+  //       aria-label="Select all" />
+  //   ),
+  //   cell: ({ row }) => (
+  //     <Checkbox
+  //       checked={row.getIsSelected()}
+  //       onCheckedChange={(value) => row.toggleSelected(!!value)}
+  //       className={'border border-gray-400'}
+  //       aria-label="Select row" />
+  //   ),
+  //   size: 28,
+  //   enableSorting: false,
+  //   enableHiding: false,
+  // },
+  {
+    header: "Campaign Name",
+    accessorKey: "campaignName",
+    cell: ({ row }) => (
+      <div className="font-medium">{row.original.campaignName}</div>
+    ),
+    size: 180,
+    filterFn: multiColumnFilterFn,
+    enableHiding: false,
+  },
+  {
+    header: "Template Name",
+    accessorKey: "templateName",
+    cell: ({ row }) => (
+      <div className="font-medium">{row.original.templateID.templateName}</div>
+    ),
+    size: 180,
+    filterFn: multiColumnFilterFn,
+    enableHiding: false,
+  },
+  {
+    header: "Contacts Group ID",
+    accessorKey: "groupID",
+    cell: ({ row }) => (
+      <div className="font-medium">{row.original.groupID}</div>
+    ),
+    
+  },
+  {
+    header: "Created On",
+    accessorKey: "createdAt",
+    cell: ({ row }) => (
+      <div className="font-medium">{getFormattedDate(row.original.createdAt)}</div>
+    ),
+    
+  },
+  {
+    id: "delete",
+    cell: ({ row }) => (
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button disabled={row === deletedRow} className="ml-auto flex items-center gap-1" variant={"outline"}>
+            {row === deletedRow ?
+            <span className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-gray-300 border-t-transparent inline-block"></span>
+            :(<><TrashIcon className="-ms-1 opacity-60" size={16} aria-hidden="true" />
+            Delete</>)}
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <div className="flex flex-col gap-2 max-sm:items-center sm:flex-row sm:gap-4">
+            <div
+              className="flex size-9 shrink-0 items-center justify-center rounded-full border"
+              aria-hidden="true">
+              <CircleAlertIcon className="opacity-80" size={16} />
+            </div>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                Are you absolutely sure?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete campaign {row.original.campaignName}.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {handleDeleteRows(row)}}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    ),
+    
+  },
+]
+
   const dynamicPageCount =
   data.length < totalCampaignsRef.current
     ? Math.ceil(totalCampaignsRef.current / pagination.pageSize)
@@ -293,15 +324,15 @@ export default function CampaignManagementComponent({companyID}) {
   })
 
   // Get unique status values
-  const uniqueStatusValues = useMemo(() => {
-    const statusColumn = table.getColumn("optedIn")
+  // const uniqueStatusValues = useMemo(() => {
+  //   const statusColumn = table.getColumn("optedIn")
 
-    if (!statusColumn) return []
+  //   if (!statusColumn) return []
 
-    const values = Array.from(statusColumn.getFacetedUniqueValues().keys())
+  //   const values = Array.from(statusColumn.getFacetedUniqueValues().keys())
 
-    return values.sort();
-  }, [table.getColumn("optedIn")?.getFacetedUniqueValues()])
+  //   return values.sort();
+  // }, [table.getColumn("optedIn")?.getFacetedUniqueValues()])
 
   // Get counts for each status
   const statusCounts = useMemo(() => {
@@ -316,21 +347,21 @@ export default function CampaignManagementComponent({companyID}) {
   }, [table.getColumn("createdAt")?.getFilterValue()])
 
 
-  const handleStatusChange = (checked, value) => {
-    const filterValue = table.getColumn("createdAt")?.getFilterValue()
-    const newFilterValue = filterValue ? [...filterValue] : []
+  // const handleStatusChange = (checked, value) => {
+  //   const filterValue = table.getColumn("createdAt")?.getFilterValue()
+  //   const newFilterValue = filterValue ? [...filterValue] : []
 
-    if (checked) {
-      newFilterValue.push(value)
-    } else {
-      const index = newFilterValue.indexOf(value)
-      if (index > -1) {
-        newFilterValue.splice(index, 1)
-      }
-    }
+  //   if (checked) {
+  //     newFilterValue.push(value)
+  //   } else {
+  //     const index = newFilterValue.indexOf(value)
+  //     if (index > -1) {
+  //       newFilterValue.splice(index, 1)
+  //     }
+  //   }
 
-    table.getColumn("createdAt")?.setFilterValue(newFilterValue.length ? newFilterValue : undefined)
-  }
+  //   table.getColumn("createdAt")?.setFilterValue(newFilterValue.length ? newFilterValue : undefined)
+  // }
 
   return (
     
@@ -374,7 +405,7 @@ export default function CampaignManagementComponent({companyID}) {
             )}
           </div>
           {/* Filter by status */}
-          <Popover>
+          {/* <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline">
                 <FilterIcon className="-ms-1 opacity-60" size={16} aria-hidden="true" />
@@ -408,7 +439,7 @@ export default function CampaignManagementComponent({companyID}) {
                 </div>
               </div>
             </PopoverContent>
-          </Popover>
+          </Popover> */}
           {/* Delete button */}
           {table.getSelectedRowModel().rows.length > 0 && (
             <AlertDialog>
@@ -416,10 +447,6 @@ export default function CampaignManagementComponent({companyID}) {
                 <Button className="ml-auto" variant="outline">
                   <TrashIcon className="-ms-1 opacity-60" size={16} aria-hidden="true" />
                   Delete
-                  <span
-                    className="bg-background text-muted-foreground/70 -me-1 inline-flex h-5 max-h-full items-center rounded border px-1 font-[inherit] text-[0.625rem] font-medium">
-                    {table.getSelectedRowModel().rows.length}
-                  </span>
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -434,18 +461,13 @@ export default function CampaignManagementComponent({companyID}) {
                       Are you absolutely sure?
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete{" "}
-                      {table.getSelectedRowModel().rows.length} selected{" "}
-                      {table.getSelectedRowModel().rows.length === 1
-                        ? "campaign"
-                        : "campaigns"}
-                      .
+                      This action cannot be undone. This will permanently delete campaign {row.original.campaignName}.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                 </div>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => {handleDeleteRows(table.getSelectedRowModel().rows)}}>
+                  <AlertDialogAction onClick={() => {handleDeleteRows(row)}}>
                     Delete
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -461,13 +483,13 @@ export default function CampaignManagementComponent({companyID}) {
           className="ml-auto cursor-pointer py-2 px-4 rounded-lg border border-emerald-600 font-medium text-sm flex items-center gap-x-2 text-white bg-emerald-600"
         >
           <PlusIcon size={16} aria-hidden="true" />
-          <span className="-mt-px">Create Contact</span>
+          <span className="-mt-px">Create Campaign</span>
         </button>
       </AlertDialogTrigger>
       <AlertDialogContent className="sm:max-w-2xl w-full">
         <div className="px-3">
           <CreateCampaignDialog 
-          loadTempltes 
+          companyID={companyID}
           templates={templates}
           contacts={contacts}
           totalTemplates={totalTemplates}
@@ -477,6 +499,7 @@ export default function CampaignManagementComponent({companyID}) {
           setLoadContacts={setLoadContacts}
           setLoadTemplates={setLoadTemplates}
           handleCreate={handleCreate}
+          isCreateLoading={isCreateLoading}
           setOpen={setOpen}
           />
         </div>
@@ -536,7 +559,7 @@ export default function CampaignManagementComponent({companyID}) {
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row,index) => (index < ((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize) && index >= (table.getState().pagination.pageIndex * table.getState().pagination.pageSize)) && (
+              table.getRowModel().rows.map((row,index) => (index < ((pagination.pageIndex + 1) * pagination.pageSize) && index >= (pagination.pageIndex * pagination.pageSize)) && (
                 <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id} className="last:py-0">
