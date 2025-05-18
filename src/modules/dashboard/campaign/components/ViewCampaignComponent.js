@@ -1,12 +1,12 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react"
-import { useCreateContact } from "@/modules/authentication/hooks/useCreateContact";
+import { useCreateCampaign } from "@/modules/authentication/hooks/useCreateCampaign";
+import { useFetchCampaigns } from "@/modules/authentication/hooks/useFetchCampaigns";
 import { useFetchContacts } from "@/modules/authentication/hooks/useFetchContacts";
-import { useDeleteContact } from "@/modules/authentication/hooks/useDeleteContact";
-import { useUpdateContact } from "@/modules/authentication/hooks/useUpdateContact";
-import { CreateContactDialog } from "./CreateContactDialog";
-import { UpdateContactDialog } from "./UpdateContactDialog";
+import { useFetchTemplates } from "@/modules/authentication/hooks/useFetchTemplates";
+import CreateCampaignDialog from "./CreateCampaignComponent";
+import { useDeleteCampaign } from "@/modules/authentication/hooks/useDeleteCampaign";
 import { flexRender, getCoreRowModel, getFacetedUniqueValues, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable,} from "@tanstack/react-table";
-import { ChevronDownIcon, ChevronFirstIcon, ChevronLastIcon, ChevronLeftIcon, ChevronRightIcon, ChevronUpIcon, CircleAlertIcon, CircleXIcon, EllipsisIcon, FilterIcon, ListFilterIcon, PlusIcon, TrashIcon, EyeIcon, PencilIcon} from "lucide-react"
+import { ChevronDownIcon, ChevronFirstIcon, ChevronLastIcon, ChevronLeftIcon, ChevronRightIcon, ChevronUpIcon, CircleAlertIcon, CircleXIcon, EllipsisIcon, FilterIcon, ListFilterIcon, PlusIcon, TrashIcon} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,} from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
@@ -20,18 +20,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow,} from "@/components/ui/table"
 import { useRouter } from "next/router";
 import { toast } from "sonner";
+import { all } from "axios";
+
 
 // Custom filter function for multi-column searching
 const multiColumnFilterFn = (row, columnId, filterValue) => {
-  const firstName = row.original.firstName?.toLowerCase() || "";
-  const lastName = row.original.lastName?.toLowerCase() || "";
-  const phoneNumber = row.original.phoneNumber?.toLowerCase() || "";
+  const campaignName = row.original.campaignName?.toLowerCase() || "";
+  const templateName = row.original.templateID.templateName?.toLowerCase() || "";
 
   const search = filterValue.toLowerCase();
   return (
-    firstName.includes(search) ||
-    lastName.includes(search) ||
-    phoneNumber.includes(search)
+    campaignName.includes(search) || templateName.includes(search)
   );
 };
 
@@ -46,77 +45,21 @@ const statusFilterFn = (
   return filterValue.includes(status);
 }
 
-const columns = [
-  {
-    id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        className={'border border-gray-400'}
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all" />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        className={'border border-gray-400'}
-        aria-label="Select row" />
-    ),
-    size: 28,
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
-    header: "Name",
-    accessorKey: "name",
-    cell: ({ row }) => (
-      <div className="font-medium">{`${row.original.firstName} ${row.original.lastName}`}</div>
-    ),
-    size: 180,
-    filterFn: multiColumnFilterFn,
-    enableHiding: false,
-  },
-  {
-    header: "Phone Number",
-    accessorKey: "phoneNumber",
-    size: 220,
-  },
-  {
-    header: "Country",
-    accessorKey: "country",
-    cell: ({ row }) => (
-      <div className="font-medium">{row.getValue("country")}</div>
-    ),
-    size: 180,
-  },
-  {
-    header: "Opted In",
-    accessorKey: "optedIn",
-    cell: ({ row }) => (
-      <Badge
-        className={cn(!row.getValue("optedIn") ?
-          "bg-red-600/20 text-red-600"
-        : "bg-green-600/20 text-green-600")}>
-        {`${row.getValue("optedIn")?"YES":"NO"}`}
-      </Badge>
-    ),
-    size: 100,
-    filterFn: statusFilterFn,
-  },
+const getFormattedDate = (isoDate) =>{ 
+  const date = new Date(isoDate);
+  const formattedDate = date.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+  return formattedDate;
+}
 
-];
-
-export default function ViewContactManagement({companyID}) {
-  const { createResponse, isCreateLoading, createError, handleCreate, cancelCreate } = useCreateContact();
-  const { allContacts, totalContacts, loadingContacts, contactError, fetchContacts, cancelContactsOperation } = useFetchContacts();
-  const { deleteResponse, isDeleteLoading, deleteError, handleDelete, cancelDelete } = useDeleteContact();
-  const { updateResponse, isUpdateLoading, updateError, handleUpdate, cancelUpdate } = useUpdateContact();
+export default function ViewCampaignComponent({companyID}) {
+  const { allCampaigns, totalCampaigns, loadingCampaigns, campaignError, fetchCampaigns, cancelCampaignsOperation } = useFetchCampaigns();
+  const { deleteResponse, isDeleteLoading, deleteError, handleDelete, cancelDelete } = useDeleteCampaign();
   const visitedPagesRef = useRef(new Set());
-  const totalContactsRef = useRef(0);
+  const totalCampaignsRef = useRef(0);
   const id = useId()
   const [columnFilters, setColumnFilters] = useState([])
   const [columnVisibility, setColumnVisibility] = useState({})
@@ -136,74 +79,14 @@ export default function ViewContactManagement({companyID}) {
   ])
 
   const [data, setData] = useState([])
-
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [country, setCountry] = useState({});
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [optedIn, setOptedIn] = useState(false);
-  const [customProperties, setCustomProperties] = useState([{ key: "", value: "" }]);
-
-  const addCustomProperty = () => {
-    setCustomProperties([...customProperties, { key: "", value: "" }]);
-  };
-
-  const removeCustomProperty = (index) => {
-    const updatedProperties = customProperties.filter((_, i) => i !== index);
-    setCustomProperties(updatedProperties);
-  };
-
-  const updateCustomProperty = (index, field, value) => {
-    const updatedProperties = [...customProperties];
-    updatedProperties[index][field] = value;
-    setCustomProperties(updatedProperties);
-  };
-
-  const handleCreateContact = async (execute) => {
-    if(execute)
-      await handleCreate({
-        companyID,
-        firstName,
-        lastName,
-        phoneNumber,
-        optedIn,
-        countryCode: country.code,
-        country: country.country,
-        properties: customProperties
-      });
-    setFirstName('');
-    setLastName('');
-    setPhoneNumber('');
-    setCustomProperties([{ key: "", value: "" }]);
-    setCountry({});
-    setOptedIn(false);
-  }
-
-  const handleUpdateContact = async (execute) => {
-    if(execute)
-      await handleUpdate({
-        companyID,
-        firstName,
-        lastName,
-        phoneNumber,
-        optedIn,
-        countryCode: country.countryCode,
-        properties: customProperties
-      });
-    setFirstName('');
-    setLastName('');
-    setPhoneNumber('');
-    setCustomProperties([{ key: "", value: "" }]);
-    setCountry({});
-    setOptedIn(false);
-  }
+  const [deletedRow, setDeletedRow] = useState();
   
   useEffect(() => {
     const fetch = async () => {
       const currentIndex = pagination.pageIndex;
 
-      if (companyID && !visitedPagesRef.current.has(currentIndex) && (!totalContactsRef.current || data.length < totalContactsRef.current)) {
-        await fetchContacts({
+      if (companyID && !visitedPagesRef.current.has(currentIndex) && (!totalCampaignsRef.current || data.length < totalCampaignsRef.current)) {
+        await fetchCampaigns({
           companyID,
           index: currentIndex,
           limit: pagination.pageSize,
@@ -215,103 +98,142 @@ export default function ViewContactManagement({companyID}) {
   }, [pagination.pageIndex, pagination.pageSize, companyID]);
 
   useEffect(() => {
-    if(contactError){
-      toast.error(contactError);
+    if(campaignError){
+      toast.error(campaignError);
     }
-  }, [contactError]);
+  }, [campaignError]);
 
   useEffect(() => {
-    if (allContacts) {
-      setData((prev) => [...prev, ...allContacts])
-      if(!totalContactsRef.current)totalContactsRef.current = totalContacts;
+    if (allCampaigns) {
+      setData((prev) => [...prev, ...allCampaigns])
+      if(!totalCampaignsRef.current)totalCampaignsRef.current = totalCampaigns;
     }
-  }, [allContacts]);
+  }, [allCampaigns]);
 
-  useEffect(() => {
-    if (createResponse?.message === "Contact added successfully") {
-      toast.success(`Contact added successfully`);
-      setData((prev) => [createResponse.contact, ...prev]);
-      totalContactsRef.current = totalContactsRef.current + 1;
-    } else if(createError){
-      toast.error(createError);
-    }
-  },[createResponse,createError]);
 
-  useEffect(() => {
-    if (updateResponse?.message === "Contact updated successfully") {
-      
-      const updatedData = data.map(contact =>
-      contact._id === updateResponse.contact._id ? updateResponse.contact : contact
-    );
-      setData(updatedData);
-      toast.success(updateResponse.message);
-    } else if(updateError){
-      toast.error(updateError);
-    }
-  },[updateResponse, updateError]);
-
-  const handleDeleteRows = async() => {
-    const selectedRows = table.getSelectedRowModel().rows;
-    const phoneNumbers = selectedRows.map(row => row.original.phoneNumber);
+  const handleDeleteRows = async(row) => {
+    setDeletedRow(row)
     await handleDelete({
       companyID,
-      phoneNumbers
+      campaignName: row.original.campaignName
     });
   }
 
   useEffect(() => {
     if (deleteResponse?.status === 200) {
       toast.success(deleteResponse.message);
-      const deletedContacts = table.getSelectedRowModel().rows;
-      console.log(deletedContacts);
-      const updatedData = data.filter((item) => !deletedContacts.some((row) => row.original._id === item._id))
-      console.log(updatedData);
+      const updatedData = data.filter((item) => item._id !== deletedRow.original._id)
       setData(updatedData);
-      totalContactsRef.current = totalContactsRef.current - deleteResponse.count;
-      table.resetRowSelection();
+      totalCampaignsRef.current = totalCampaignsRef.current - deleteResponse.count;  
     } else if(deleteError){
       toast.error(deleteError);
-      table.resetRowSelection();
     }
   },[deleteResponse,deleteError]);
 
-  const getUpdateDialogProps = () => {
-
-    return {
-      firstName,
-      lastName,
-      phoneNumber,
-      optedIn,
-      customProperties,
-      country,
-      setFirstName,
-      setLastName,
-      setOptedIn,
-      setPhoneNumber,
-      addCustomProperty,
-      removeCustomProperty,
-      updateCustomProperty
-    }
-  }
-
-  const prepareEditDialog = (row) => {
-  const original = row.original;
-  setCountry({ country: original.country, countryCode: original.countryCode });
-  setFirstName(original.firstName);
-  setLastName(original.lastName);
-  setOptedIn(original.optedIn);
-  setPhoneNumber(original.phoneNumber);
-  const propertiesArray = Object.entries(original.properties || {}).map(([key, value]) => ({
-    key,
-    value
-  }));
-  setCustomProperties(propertiesArray);
-};
-
+  const columns = [
+  // {
+  //   id: "select",
+  //   header: ({ table }) => (
+  //     <Checkbox
+  //       checked={
+  //         table.getIsAllPageRowsSelected() ||
+  //         (table.getIsSomePageRowsSelected() && "indeterminate")
+  //       }
+  //       className={'border border-gray-400'}
+  //       onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+  //       aria-label="Select all" />
+  //   ),
+  //   cell: ({ row }) => (
+  //     <Checkbox
+  //       checked={row.getIsSelected()}
+  //       onCheckedChange={(value) => row.toggleSelected(!!value)}
+  //       className={'border border-gray-400'}
+  //       aria-label="Select row" />
+  //   ),
+  //   size: 28,
+  //   enableSorting: false,
+  //   enableHiding: false,
+  // },
+  {
+    header: "Campaign Name",
+    accessorKey: "campaignName",
+    cell: ({ row }) => (
+      <div className="font-medium">{row.original.campaignName}</div>
+    ),
+    size: 180,
+    filterFn: multiColumnFilterFn,
+    enableHiding: false,
+  },
+  {
+    header: "Template Name",
+    accessorKey: "templateName",
+    cell: ({ row }) => (
+      <div className="font-medium">{row.original.templateID.templateName}</div>
+    ),
+    size: 180,
+    filterFn: multiColumnFilterFn,
+    enableHiding: false,
+  },
+  {
+    header: "Campaign ID",
+    accessorKey: "groupID",
+    cell: ({ row }) => (
+      <div className="font-medium">{row.original.groupID}</div>
+    ),
+    
+  },
+  {
+    header: "Created On",
+    accessorKey: "createdAt",
+    cell: ({ row }) => (
+      <div className="font-medium">{getFormattedDate(row.original.createdAt)}</div>
+    ),
+    
+  },
+  {
+    id: "delete",
+    cell: ({ row }) => (
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button disabled={row === deletedRow} className="ml-auto flex items-center gap-1" variant={"outline"}>
+            {row === deletedRow ?
+            <span className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-gray-300 border-t-transparent inline-block"></span>
+            :(<><TrashIcon className="-ms-1 opacity-60" size={16} aria-hidden="true" />
+            Delete</>)}
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <div className="flex flex-col gap-2 max-sm:items-center sm:flex-row sm:gap-4">
+            <div
+              className="flex size-9 shrink-0 items-center justify-center rounded-full border"
+              aria-hidden="true">
+              <CircleAlertIcon className="opacity-80" size={16} />
+            </div>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                Are you absolutely sure?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete campaign {row.original.campaignName}.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {handleDeleteRows(row)}}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    ),
+    
+  },
+]
 
   const dynamicPageCount =
-  data.length < totalContactsRef.current
-    ? Math.ceil(totalContactsRef.current / pagination.pageSize)
+  data.length < totalCampaignsRef.current
+    ? Math.ceil(totalCampaignsRef.current / pagination.pageSize)
     : undefined;
 
   const table = useReactTable({
@@ -328,7 +250,7 @@ export default function ViewContactManagement({companyID}) {
     getFilteredRowModel: getFilteredRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
     pageCount: dynamicPageCount,
-    manualPagination: data.length <= totalContactsRef.current,
+    manualPagination: data.length <= totalCampaignsRef.current,
     state: {
       sorting,
       pagination,
@@ -338,53 +260,51 @@ export default function ViewContactManagement({companyID}) {
   })
 
   // Get unique status values
-  const uniqueStatusValues = useMemo(() => {
-    const statusColumn = table.getColumn("optedIn")
+  // const uniqueStatusValues = useMemo(() => {
+  //   const statusColumn = table.getColumn("optedIn")
 
-    if (!statusColumn) return []
+  //   if (!statusColumn) return []
 
-    const values = Array.from(statusColumn.getFacetedUniqueValues().keys())
+  //   const values = Array.from(statusColumn.getFacetedUniqueValues().keys())
 
-    return values.sort();
-  }, [table.getColumn("optedIn")?.getFacetedUniqueValues()])
+  //   return values.sort();
+  // }, [table.getColumn("optedIn")?.getFacetedUniqueValues()])
 
   // Get counts for each status
   const statusCounts = useMemo(() => {
-    const statusColumn = table.getColumn("optedIn")
+    const statusColumn = table.getColumn("createdAt")
     if (!statusColumn) return new Map();
     return statusColumn.getFacetedUniqueValues();
-  }, [table.getColumn("optedIn")?.getFacetedUniqueValues()])
+  }, [table.getColumn("createdAt")?.getFacetedUniqueValues()])
 
   const selectedStatuses = useMemo(() => {
-    const filterValue = table.getColumn("optedIn")?.getFilterValue()
+    const filterValue = table.getColumn("cratedAt")?.getFilterValue()
     return filterValue ?? []
-  }, [table.getColumn("optedIn")?.getFilterValue()])
+  }, [table.getColumn("createdAt")?.getFilterValue()])
 
-  const openImportContactDialog = () => {
-    alert('open dialog');
-  }
 
-  const handleStatusChange = (checked, value) => {
-    const filterValue = table.getColumn("optedIn")?.getFilterValue()
-    const newFilterValue = filterValue ? [...filterValue] : []
+  // const handleStatusChange = (checked, value) => {
+  //   const filterValue = table.getColumn("createdAt")?.getFilterValue()
+  //   const newFilterValue = filterValue ? [...filterValue] : []
 
-    if (checked) {
-      newFilterValue.push(value)
-    } else {
-      const index = newFilterValue.indexOf(value)
-      if (index > -1) {
-        newFilterValue.splice(index, 1)
-      }
-    }
+  //   if (checked) {
+  //     newFilterValue.push(value)
+  //   } else {
+  //     const index = newFilterValue.indexOf(value)
+  //     if (index > -1) {
+  //       newFilterValue.splice(index, 1)
+  //     }
+  //   }
 
-    table.getColumn("optedIn")?.setFilterValue(newFilterValue.length ? newFilterValue : undefined)
-  }
+  //   table.getColumn("createdAt")?.setFilterValue(newFilterValue.length ? newFilterValue : undefined)
+  // }
 
   return (
-    <div className="space-y-4">
+    
+    <div className="space-y-4 max-w-6xl mx-auto pt-4">
       {/* Filters */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold">Manage Contacts</h2>
+        <h2 className="text-xl font-semibold">Manage Campaigns</h2>
         <div className="flex items-center gap-3">
           {/* Filter by name or phone number */}
           <div className="relative">
@@ -393,25 +313,25 @@ export default function ViewContactManagement({companyID}) {
               ref={inputRef}
               className={cn(
                 "peer min-w-60 ps-9 border border-gray-300 rounded-lg py-2 text-sm focus:border-emerald-600 ",
-                Boolean(table.getColumn("name")?.getFilterValue()) && "pe-9"
+                Boolean(table.getColumn("campaignName")?.getFilterValue()) && "pe-9"
               )}
               value={
-                (table.getColumn("name")?.getFilterValue() ?? "")
+                (table.getColumn("campaignName")?.getFilterValue() ?? "")
               }
-              onChange={(e) => table.getColumn("name")?.setFilterValue(e.target.value)}
-              placeholder="Filter by name or phone number..."
+              onChange={(e) => table.getColumn("campaignName")?.setFilterValue(e.target.value)}
+              placeholder="Filter by name..."
               type="text"
-              aria-label="Filter by name or email" />
+              aria-label="Filter by name" />
             <div
               className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 peer-disabled:opacity-50">
               <ListFilterIcon size={16} aria-hidden="true" />
             </div>
-            {Boolean(table.getColumn("name")?.getFilterValue()) && (
+            {Boolean(table.getColumn("campaignName")?.getFilterValue()) && (
               <button
                 className="text-muted-foreground/80 hover:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 absolute inset-y-0 end-0 flex h-full w-9 items-center justify-center rounded-e-md transition-[color,box-shadow] outline-none focus:z-10 focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
                 aria-label="Clear filter"
                 onClick={() => {
-                  table.getColumn("name")?.setFilterValue("")
+                  table.getColumn("campaignName")?.setFilterValue("")
                   if (inputRef.current) {
                     inputRef.current.focus()
                   }
@@ -421,7 +341,7 @@ export default function ViewContactManagement({companyID}) {
             )}
           </div>
           {/* Filter by status */}
-          <Popover>
+          {/* <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline">
                 <FilterIcon className="-ms-1 opacity-60" size={16} aria-hidden="true" />
@@ -455,35 +375,7 @@ export default function ViewContactManagement({companyID}) {
                 </div>
               </div>
             </PopoverContent>
-          </Popover>
-          {/* Edit button */}
-          {table.getSelectedRowModel().rows.length == 1 && (<div className="divide-primary-foreground/30 inline-flex divide-x rounded-md shadow-xs rtl:space-x-reverse">
-          <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline" onClick={() => {prepareEditDialog(table.getSelectedRowModel().rows[0])}}                >
-                  <PencilIcon size={16} aria-hidden="true" /> Edit <span>/</span><EyeIcon size={16} aria-hidden="true" /> View
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent className="sm:max-w-2xl w-full">
-                <div className="p-3">
-                  <AlertDialogTitle className="text-2xl font-semibold mb-8">Update Contact</AlertDialogTitle>
-                  
-                  <UpdateContactDialog 
-                    {...getUpdateDialogProps()}
-                  />
-                </div>
-
-                <AlertDialogFooter className="border-t p-4 bg-gray-50 flex justify-end gap-4 rounded-b-lg">
-                  <AlertDialogCancel onClick={() => handleUpdateContact(false)} className="px-6 py-3 border rounded-lg text-base bg-white hover:bg-gray-50">
-                    Cancel
-                  </AlertDialogCancel>
-                  <AlertDialogAction onClick={() => handleUpdateContact(true)} className="px-6 py-3 rounded-lg text-base text-white bg-green-600 hover:bg-green-700">
-                    Update Contact
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-        </div>)}
+          </Popover> */}
           {/* Delete button */}
           {table.getSelectedRowModel().rows.length > 0 && (
             <AlertDialog>
@@ -491,10 +383,6 @@ export default function ViewContactManagement({companyID}) {
                 <Button className="ml-auto" variant="outline">
                   <TrashIcon className="-ms-1 opacity-60" size={16} aria-hidden="true" />
                   Delete
-                  <span
-                    className="bg-background text-muted-foreground/70 -me-1 inline-flex h-5 max-h-full items-center rounded border px-1 font-[inherit] text-[0.625rem] font-medium">
-                    {table.getSelectedRowModel().rows.length}
-                  </span>
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -509,18 +397,13 @@ export default function ViewContactManagement({companyID}) {
                       Are you absolutely sure?
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete{" "}
-                      {table.getSelectedRowModel().rows.length} selected{" "}
-                      {table.getSelectedRowModel().rows.length === 1
-                        ? "contact"
-                        : "contacts"}
-                      .
+                      This action cannot be undone. This will permanently delete campaign {row.original.campaignName}.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                 </div>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => {handleDeleteRows(table.getSelectedRowModel().rows)}}>
+                  <AlertDialogAction onClick={() => {handleDeleteRows(row)}}>
                     Delete
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -528,43 +411,12 @@ export default function ViewContactManagement({companyID}) {
             </AlertDialog>
           )}
         {/* Add user button */}
-        <div className="divide-primary-foreground/30 inline-flex divide-x rounded-md shadow-xs rtl:space-x-reverse">
-          <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <button className="ml-auto cursor-pointer py-2 px-4 rounded-lg border border-emerald-600 font-medium text-sm flex items-center gap-x-2 text-white bg-emerald-600"><PlusIcon size={16} aria-hidden="true" /><span className="-mt-px">Create Contact</span></button>
-              </AlertDialogTrigger>
-              <AlertDialogContent className="sm:max-w-2xl w-full">
-                <div className="p-3">
-                  <AlertDialogTitle className="text-2xl font-semibold mb-8">Create Contact</AlertDialogTitle>
-                  
-                  <CreateContactDialog 
-                    firstName={firstName}
-                    lastName={lastName}
-                    phoneNumber={phoneNumber}
-                    optedIn={optedIn}
-                    country={country}
-                    customProperties={customProperties}
-                    setFirstName={setFirstName}
-                    setLastName={setLastName}
-                    setPhoneNumber={setPhoneNumber}
-                    setOptedIn={setOptedIn}
-                    setCountry={setCountry}
-                    addCustomProperty={addCustomProperty}
-                    removeCustomProperty={removeCustomProperty}
-                    updateCustomProperty={updateCustomProperty}
-                  />
-                </div>
-
-                <AlertDialogFooter className="border-t p-4 bg-gray-50 flex justify-end gap-4 rounded-b-lg">
-                  <AlertDialogCancel onClick={() => handleCreateContact(false)}className="px-6 py-3 border rounded-lg text-base bg-white hover:bg-gray-50">
-                    Cancel
-                  </AlertDialogCancel>
-                  <AlertDialogAction onClick={() => handleCreateContact(true)} className="px-6 py-3 rounded-lg text-base text-white bg-green-600 hover:bg-green-700">
-                    Create Contact
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+        <div className="divide-primary-foreground/30 inline-flex divide-x rounded-md shadow-xs rtl:space-x-reverse">  
+          <button onClick={() => {router.push("/dashboard/campaigns/create")}}
+            className="ml-auto cursor-pointer py-2 px-4 rounded-lg border border-emerald-600 font-medium text-sm flex items-center gap-x-2 text-white bg-emerald-600">
+            <PlusIcon size={16} aria-hidden="true" />
+            <span className="-mt-px">Create Campaign</span>
+          </button>
         </div>
         </div>
       </div>
@@ -615,7 +467,7 @@ export default function ViewContactManagement({companyID}) {
             ))}
           </TableHeader>
           <TableBody>
-            {!loadingContacts && table?.getRowModel().rows?.length ? (
+            {!loadingCampaigns && table?.getRowModel().rows?.length ? (
               table?.getRowModel().rows.map((row,index) => (index < ((pagination.pageIndex + 1) * pagination.pageSize) && index >= (pagination.pageIndex * pagination.pageSize)) && 
                 (<TableRow
                   key={row.id}
@@ -624,14 +476,14 @@ export default function ViewContactManagement({companyID}) {
                   {row?.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}
-                      className="py-3 px-3 text-sm text-gray-700"
+                      className="py-1.5 px-3 text-sm text-gray-700"
                     >
                       {flexRender(cell.column.columnDef.cell, cell?.getContext())}
                     </TableCell>
                   ))}
                 </TableRow>)
               )
-            ) : !loadingContacts ? (
+            ) : !loadingCampaigns ? (
               <TableRow>
                 <TableCell
                   colSpan={columns.length + 1}
@@ -829,7 +681,7 @@ function RowActions({
                       Are you absolutely sure?
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                      {`This action cannot be undone. The contact for ${row.original.firstName} ${row.original.lastName}: ${row.original.phoneNumber} will be permanently deleted.`}
+                      {`This action cannot be undone. The campaign for ${row.original.campaignName} will be permanently deleted.`}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                 </div>
