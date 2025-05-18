@@ -6,7 +6,7 @@ import { parseCookie } from 'next/dist/compiled/@edge-runtime/cookies'
 import { useRouter } from 'next/router'
 import jwt from 'jsonwebtoken'
 import ContactManagementComponent from '@/modules/dashboard/contact/components/ContactManagementComponent'
-import CampaignManagementComponent from '@/modules/dashboard/campaign/components/CampaignManagementComponent'
+import { CampaignManagementComponent } from '@/modules/dashboard/campaign/components/CampaignManagementComponent'
 import AgentManagementComponent from '@/modules/dashboard/agent/components/AgentManagementComponent'
 import { useEffect, useState } from 'react'
 
@@ -65,15 +65,15 @@ export default function DashboardPages(props) {
     <div className='bg-slate-50 min-h-screen'>
         <DashboardHeader loginData={props} />
         {
-            router.query.slug?.join('/') == 'inbox'
-            ? <InboxDashboardComponent />
+            router.query.slug?.[0] == 'inbox'
+            ? <InboxDashboardComponent companyID={'6805ce5c8ceaf44cf44a9718'} />
             : router.query.slug?.[0] == 'templates'
-            ? <TemplateManagementComponent />
-            : router.query.slug?.join('/') == 'contacts'
-            ? <ContactManagementComponent />
-            : router.query?.slug?.join('/') == 'campaigns'
-            ? <CampaignManagementComponent />
-            : router.query.slug?.join('/') == 'agents'
+            ? <TemplateManagementComponent companyID={'6805ce5c8ceaf44cf44a9718'} />
+            : router.query.slug?.[0] == 'contacts'
+            ? <ContactManagementComponent companyID={'6805ce5c8ceaf44cf44a9718'} />
+            : router.query?.slug?.[0] == 'campaigns'
+            ? <CampaignManagementComponent companyID={'6805ce5c8ceaf44cf44a9718'}/>
+            : router.query.slug?.[0] == 'agents'
             ? <AgentManagementComponent />
             : <MainDashboardComponent />
         }

@@ -24,7 +24,7 @@ export default function PreviewPartComponent({headerType, mediaType, headerPart,
   //   }
   // }, [bodyPart]);
   return (
-    <div className='w-full px-4 sticky top-[70px] py-2 bg-gray-100 rounded-lg'>
+    <div className='w-full min-w-90 px-4 sticky top-[70px] py-2 bg-gray-100 rounded-lg'>
           {/* <h3 className='font-semibold text-lg mb-2'>Preview</h3> */}
         {
          !headerPart && !bodyPart && !footerPart && !headerType && !ctaItems?.length && !replyItems?.length
