@@ -1,6 +1,6 @@
 import { use, useEffect, useId, useMemo, useRef, useState } from "react"
-import { useFetchTemplates } from "@/modules/authentication/hooks/useFetchTemplates";
-import { useDeleteTemplate } from "@/modules/authentication/hooks/useDeleteTemplate";
+import { useFetchTemplates } from "@/modules/dashboard/template/hooks/useFetchTemplates";
+import { useDeleteTemplate } from "@/modules/dashboard/template/hooks/useDeleteTemplate";
 import PreviewPartComponent from "./PreviewPartComponent";
 import {
   flexRender,
@@ -89,7 +89,7 @@ import {
 } from "@/components/ui/table"
 import { useRouter } from "next/router";
 import { toast } from "sonner";
-import { useSyncTemplate } from "@/modules/authentication/hooks/useSyncTemplate";
+import { useSyncTemplate } from "@/modules/dashboard/template/hooks/useSyncTemplate";
 
 // Custom filter function for multi-column searching
 const multiColumnFilterFn = (row, columnId, filterValue) => {

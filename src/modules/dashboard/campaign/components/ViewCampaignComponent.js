@@ -1,10 +1,10 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react"
-import { useCreateCampaign } from "@/modules/authentication/hooks/useCreateCampaign";
-import { useFetchCampaigns } from "@/modules/authentication/hooks/useFetchCampaigns";
-import { useFetchContacts } from "@/modules/authentication/hooks/useFetchContacts";
-import { useFetchTemplates } from "@/modules/authentication/hooks/useFetchTemplates";
+import { useCreateCampaign } from "@/modules/dashboard/campaign/hooks/useCreateCampaign";
+import { useFetchCampaigns } from "@/modules/dashboard/campaign/hooks/useFetchCampaigns";
+import { useFetchContacts } from "@/modules/dashboard/contact/hooks/useFetchContacts";
+import { useFetchTemplates } from "@/modules/dashboard/template/hooks/useFetchTemplates";
 import CreateCampaignDialog from "./CreateCampaignComponent";
-import { useDeleteCampaign } from "@/modules/authentication/hooks/useDeleteCampaign";
+import { useDeleteCampaign } from "@/modules/dashboard/campaign/hooks/useDeleteCampaign";
 import { flexRender, getCoreRowModel, getFacetedUniqueValues, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable,} from "@tanstack/react-table";
 import { ChevronDownIcon, ChevronFirstIcon, ChevronLastIcon, ChevronLeftIcon, ChevronRightIcon, ChevronUpIcon, CircleAlertIcon, CircleXIcon, EllipsisIcon, FilterIcon, ListFilterIcon, PlusIcon, TrashIcon} from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -73,7 +73,7 @@ export default function ViewCampaignComponent({companyID}) {
 
   const [sorting, setSorting] = useState([
     {
-      id: "name",
+      id: "campaignName",
       desc: false,
     },
   ])
@@ -124,7 +124,7 @@ export default function ViewCampaignComponent({companyID}) {
       toast.success(deleteResponse.message);
       const updatedData = data.filter((item) => item._id !== deletedRow.original._id)
       setData(updatedData);
-      totalCampaignsRef.current = totalCampaignsRef.current - deleteResponse.count;  
+      totalCampaignsRef.current = totalCampaignsRef.current - deleteResponse.count; 
     } else if(deleteError){
       toast.error(deleteError);
     }
@@ -183,7 +183,16 @@ export default function ViewCampaignComponent({companyID}) {
     
   },
   {
+    header: "Number of contacts",
+    accessorKey: "groupSize",
+    cell: ({ row }) => (
+      <div className="font-medium">{row.original.groupSize}</div>
+    ),
+    
+  },
+  {
     header: "Created On",
+    id: "createdAt",
     accessorKey: "createdAt",
     cell: ({ row }) => (
       <div className="font-medium">{getFormattedDate(row.original.createdAt)}</div>
@@ -278,7 +287,7 @@ export default function ViewCampaignComponent({companyID}) {
   }, [table.getColumn("createdAt")?.getFacetedUniqueValues()])
 
   const selectedStatuses = useMemo(() => {
-    const filterValue = table.getColumn("cratedAt")?.getFilterValue()
+    const filterValue = table.getColumn("createdAt")?.getFilterValue()
     return filterValue ?? []
   }, [table.getColumn("createdAt")?.getFilterValue()])
 
