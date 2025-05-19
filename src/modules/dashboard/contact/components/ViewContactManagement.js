@@ -1,8 +1,8 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react"
-import { useCreateContact } from "@/modules/authentication/hooks/useCreateContact";
-import { useFetchContacts } from "@/modules/authentication/hooks/useFetchContacts";
-import { useDeleteContact } from "@/modules/authentication/hooks/useDeleteContact";
-import { useUpdateContact } from "@/modules/authentication/hooks/useUpdateContact";
+import { useCreateContact } from "@/modules/dashboard/contact/hooks/useCreateContact";
+import { useFetchContacts } from "@/modules/dashboard/contact/hooks/useFetchContacts";
+import { useDeleteContact } from "@/modules/dashboard/contact/hooks/useDeleteContact";
+import { useUpdateContact } from "@/modules/dashboard/contact/hooks/useUpdateContact";
 import { CreateContactDialog } from "./CreateContactDialog";
 import { UpdateContactDialog } from "./UpdateContactDialog";
 import { flexRender, getCoreRowModel, getFacetedUniqueValues, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable,} from "@tanstack/react-table";

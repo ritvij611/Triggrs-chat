@@ -8,9 +8,9 @@ import {
 } from "@/components/ui/stepper";
 import { toast } from "sonner";
 import PreviewPartComponent from "../../template/components/PreviewPartComponent";
-import { useCreateCampaign } from "@/modules/authentication/hooks/useCreateCampaign";
-import { useFetchContacts } from "@/modules/authentication/hooks/useFetchContacts";
-import { useFetchTemplates } from "@/modules/authentication/hooks/useFetchTemplates";
+import { useCreateCampaign } from "@/modules/dashboard/campaign/hooks/useCreateCampaign";
+import { useFetchContacts } from "@/modules/dashboard/contact/hooks/useFetchContacts";
+import { useFetchTemplates } from "@/modules/dashboard/template/hooks/useFetchTemplates";
 import { useRouter } from "next/router";
 
 const decodeComponents = (template) => {

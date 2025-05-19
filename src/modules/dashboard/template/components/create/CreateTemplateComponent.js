@@ -8,8 +8,8 @@ import { MediaOptions, DocumentMedia, ImageMedia, LocationMedia, VideoMedia } fr
 import { useRouter } from 'next/router';
 import RadioList from '@/components/general/radiolist';
 import { TemplateFooterInput } from './TemplateNameInput';
-import { useResumableUpload } from '@/modules/authentication/hooks/useResumableUpload';
-import { useCreateTemplate } from '@/modules/authentication/hooks/useCreateTemplate';
+import { useResumableUpload } from '@/modules/dashboard/template/hooks/useResumableUpload';
+import { useCreateTemplate } from '@/modules/dashboard/template/hooks/useCreateTemplate';
 import { toast } from 'sonner';
 import { useId } from "react"
 import { Label } from "@/components/ui/label"
