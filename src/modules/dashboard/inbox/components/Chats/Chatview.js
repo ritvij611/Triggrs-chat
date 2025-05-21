@@ -1,64 +1,52 @@
 import Image from 'next/image'
-// import WebSocket from 'ws';
 import ChatLayout from './ChatLayout';
 import SearchChatUser from './SearchChatUser'
 import ChatUserItem from './ChatUserItem'
 import { useCallback, useEffect, useRef, useState } from 'react';
-import SelectedChatUsers from './SelectedChatUsers';
+import {ConversationArea} from './ConversationArea';
 import { MessageSquarePlus } from 'lucide-react';
-// import Cookies from 'universal-cookie';
+import { useFetchConversations } from '../../hooks/useFetchConversations';
+import { useSelector, useDispatch } from 'react-redux';
+import { markRead } from '@/store/webSocketSlice';
 
+const decodeMessage = (conversation) => {
+  const name = conversation.contactName || '';
+  const waID = conversation.waID || '';
 
-
-const Chatview = () => {
-  const [contactList, setContactList] = useState([]);
-  const [contactItem, setContactItem] = useState();
-  const [connectionId, setConnectionId] = useState();
-  // const ws = new WebSocket('wss://un0j7cplid.execute-api.ap-south-1.amazonaws.com/dev');
-  const ws = useRef(null);
-  // let socket = new WebSocket('wss://un0j7cplid.execute-api.ap-south-1.amazonaws.com/dev');
-  // const [loginData, setLoginData] = useState();
-  // const cookies = new Cookies();
-// const checkSession = async () => {
-  
-
-//   if (cookies.get('twchat')) {
-//     const sessionData = await fetch('/api/check-session', {
-//       method: 'POST',
-//       headers: {
-//         'Content-Type': 'application/json'
-//       },
-//       body: JSON.stringify({
-//         'token': cookies.get('twchat')
-//       })
-//     });
-//     let response = await sessionData.json();
-//     if (cookies.get('twchat')) {
-//       setLoginData(response);
-//       console.log(response);
-//     }
-//   }
-// }
-
-const getConversations = async (phone_number_id, skip, limit) => {
-  const conversationData = await fetch(`https://wa-api.triggrsweb.com/conversation?phone_number_id=${phone_number_id}&skip=${skip}&limit=${limit}`, {
-    method:'GET',
-    headers: {
-      'Content-Type': 'application/json'
+  let time = '';
+  const timestamp = conversation?.lastMessageBody?.timestamp;
+  if (timestamp) {
+    const date = new Date(Number(timestamp)*1000);
+    if (!isNaN(date.getTime())) {
+      time = date.toISOString();
     }
-  });
-  const responseData = await conversationData.json();
-  console.log(responseData);
-  setContactList(responseData.data);
-}
+  }
+
+  const message = conversation?.lastMessageBody?.text?.body || '';
+  const messageCount = conversation.unreadMessages || 0;
+
+  return { name, waID, time, message, messageCount };
+};
 
 
-// https://wa-api.triggrsweb.com/conversation?phone_number_id=100315306037297&skip=0&limit=10
-  // const socket = io('wss://un0j7cplid.execute-api.ap-south-1.amazonaws.com/dev');
-  // const ws = new WebSocket('wss://un0j7cplid.execute-api.ap-south-1.amazonaws.com/dev');
+
+const Chatview = ({phoneID}) => {
+  const { allConversations, totalConversations, loadingConversations, conversationError, fetchConversations, cancelConversationsOperation } = useFetchConversations();
+
+  const messages = useSelector(state => state.websocket.messages);
+  const read = useSelector(state => state.websocket.read);
+  const dispatch = useDispatch();
+
+  const [conversations, setConversations] = useState([]);
+  const [conversationItem, setConversationItem] = useState();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [loadConversations, setLoadConversations] = useState(true);
+  const [newConversationMessage, setNewConversationMessage] = useState({});
+
+  const [messageMap, setMessageMap] = useState(new Map());
 
   const selectUser = (i) => {
-    setContactItem(contactList.filter(item => item._id == i)[0]);
+    setConversationItem(conversations.filter(item => item._id == i)[0]);
   }
 
   const showRightDropDown = (e, i) => {
@@ -66,152 +54,148 @@ const getConversations = async (phone_number_id, skip, limit) => {
     alert('It works-'+i);
   }
 
+  const handleConversationClick = (waID) => {
+    const selected = conversations.find(item => item.waID == waID);
+    setConversations(prev => 
+      prev.map((item => {
+        if(item.waID == waID){
+          return {
+            ...item,
+            unreadMessages: 0,
+          }
+        }
+        return item
+      }))
+    )
+    setConversationItem(selected);
 
-  const onSocketOpen = useCallback(() => {
-    ws.current?.send(JSON.stringify({ message: 'getConnId', body: "data" }));
-    console.log('Socket open');
-  }, []);
+  }
 
-  const onSocketClose = useCallback(() => {
-    console.log('Socket Close');
-  }, []);
-
-  const onSocketMessage = useCallback((event) => {
-    let responseData = JSON.parse(event);
-    const {body, requestContext} = responseData;
-    // const data = JSON.parse(body);
-    // console.log(data);
-    // console.log(requestContext);
-    if(responseData && requestContext && requestContext.routeKey == 'getConnId'){
-      ws.current?.send(JSON.stringify({ message: 'createConnId', body: {waba_id: 100464582688618, phone_number_id: 100315306037297, user_id: '64c0aeb05824e51c2dce28ec', agent_id: null}}));
-    }else if(responseData && requestContext && requestContext.routeKey == 'sendMessage'){
-      console.log(responseData);
-    }else{
-      console.log('Something Else');
-    }
-    // console.log(responseData);
-    // if(responseData && responseData.requestContext && responseData.requestContext.routeKey == 'getConnId'){
-    //   ws.current?.send(JSON.stringify({ message: 'createConnId', body: {waba_id: 100464582688618, phone_number_id: 100315306037297}}));
-    // }
-    // // else if(responseData.requestContext.routeKey == 'createConnId'){} // Update WABA here
-    // // else{
-    //   console.log(JSON.parse(responseData.body));
-    // }
-  }, []);
-
-  const onConnect = useCallback(() => {
-    if (ws.current?.readyState !== WebSocket.OPEN) {
-      ws.current = new WebSocket('wss://un0j7cplid.execute-api.ap-south-1.amazonaws.com/dev');
-      ws.current?.addEventListener('open', onSocketOpen);
-      ws.current?.addEventListener('close', onSocketClose);
-      ws.current?.addEventListener('message', (event) => {
-        onSocketMessage(event.data);
-      });
-    }
-  }, []);
-
-  const onDisconnect = useCallback(() => {
-    if (connectionId) {
-      ws.current?.close();
-    }
-  }, [connectionId]);
-
-  useEffect(() => {
-    getConversations('100315306037297', 0, 20);
-    // console.log(ws.readyState);
-    // if(ws.readyState == ws.CONNECTING && !connectionId){
-    //   // When connection starts open then this will work
-    //   ws.onopen = (event) => {
-    //     // console.log('open');
-    //     // ws.send(JSON.stringify({message: "getConnId", body: {send: 'Connection'}}));
-    //     // ws.send(JSON.stringify({message: "sendMessage", body: {send: 'Connection'}}))
-    //     console.log(event);
-    //   }
-
-    //   // When connection receives message from server then this will work
-    //   ws.onmessage = (event) => {
-    //     // console.log(event);
-    //     if(connectionId){
-    //       console.log('Actual Code work here');
-    //     }else{
-    //       if(event && event.data && JSON.parse(event.data).requestContext && JSON.parse(event.data).requestContext.connectionId){
-    //         console.log(JSON.parse(event.data).requestContext.connectionId);
-    //         setConnectionId(JSON.parse(event.data).requestContext.connectionId);
-    //       }
-    //     }
-    //   }
-
-    //   // When connection receives error by server then this will work
-    //   ws.onerror = (event) => {
-    //     console.log('not work');
-    //     console.log(event);
-    //   }
-
-    //   // When connection is closed by server then this will work
-    //   ws.onclose = (event) => {
-    //     console.log('closed');
-    //     console.log(event);
-    //   }
-    // }else{
-    //   console.log('This will not work');
-    // }
-
-    // return () => {
-    //   if(ws){
-    //     if(ws.readyState == ws.OPEN){
-    //       ws.close();
-    //     }
-    //   }
-    // }
-    onConnect();
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      ws.current?.close();
+  useEffect(()=>{
+    if (!loadConversations) return;
+    const fetch = async() => {
+      if(phoneID){
+        await fetchConversations({
+          phoneID,
+          limit: 10,
+          index: conversations.length / 10,
+        });
+      }  
     };
-  }, []);
+
+    fetch();
+  },[loadConversations]);
+
+  useEffect(() => {
+    if (messages.length > 0 && read == false) {
+      const lastMessage = messages[messages.length - 1];
+      const message = lastMessage.message;
+      const sender = lastMessage.sender;
+      const waID = sender.wa_id;
+      if(conversationItem.waID == waID){
+        setNewConversationMessage({
+          messageObject: message, 
+          messageType: "RECEIVED",
+          read: false,
+        })
+      }
+
+      const existing = conversations.find(item => item.waID === waID);
+
+      let updatedConversations;
+
+      if (existing) {
+        const updatedItem = {
+          ...existing,
+          lastMessageBody: message,
+          unreadMessages: conversationItem.waID === waID ? 0 : (existing.unreadMessages || 0) + 1,
+        };
+
+        updatedConversations = [
+          updatedItem,
+          ...conversations.filter(item => item.waID !== waID)
+        ];
+      } else {
+        const newConversation = {
+          waID,
+          contactName: sender.profile.name,
+          contactNumber: sender.wa_id, 
+          lastMessageBody: message,
+          unreadMessages: 1,
+        };
+
+        updatedConversations = [newConversation, ...conversations];
+      }
+
+      setConversations(updatedConversations);
+      dispatch(markRead());
+    }
+  }, [messages]);
+
+
+  useEffect(() => {
+    if (allConversations.length) {
+      setConversations((prev) => [...prev, ...allConversations]);
+      setLoadConversations(false);
+    } else if (conversationError) {
+      toast.error(conversationError);
+      setLoadConversations(false);
+    }
+  }, [allConversations, conversationError, totalConversations]);
+
 
 
   return (
     <>
-      <div className="w-full rounded-lg font-inter overflow-y-auto sticky top-0 shadow border border-gray-100 bg-white bottom-0 lg:h-[calc(100vh-65px)]" aria-label="Sidenav">
-                <div className='w-full sticky top-0 bg-white'>
-                  <div className='w-full flex justify-between items-center px-6 pt-4 pb-1'>
-                  <h3 className='text-xl font-semibold'>Inbox</h3>
-                  <MessageSquarePlus size={20} className='opacity-70' />
-                </div>
-                <SearchChatUser placeholder='Search Contacts' />
-                <hr/>
-                </div>
-                <div className = "border-r border-gray-200">
-                    <div className="w-full overflow-y-auto">
-{/*                         
-                        // contactList && contactList.length > 0 
-                        // ? contactList.map((contactItem,i) => {
-                        //     return  */}
-                            <ChatUserItem />
-                            <ChatUserItem />
-                            <ChatUserItem />
-                            <ChatUserItem />
-                            <ChatUserItem />
-                            <ChatUserItem />
-                            <ChatUserItem />
-                            <ChatUserItem />
-                            <ChatUserItem />
-                            <ChatUserItem />
-                        {/* // })
-                        // : <>Not found</> */}
-                        
-                    </div>
-                </div>
+      <div className="w-full rounded-lg font-inter sticky top-0 shadow border border-gray-100 bg-white bottom-0 lg:h-[calc(100vh-65px)]" aria-label="Sidenav">
+        <div className='w-full sticky top-0 bg-white'>
+          <div className='w-full flex justify-between items-center px-6 pt-4 pb-1'>
+          <h3 className='text-xl font-semibold'>Inbox</h3>
+          <MessageSquarePlus size={20} className='opacity-70' />
+        </div>
+        <SearchChatUser searchTerm={searchTerm} setSearchTerm={setSearchTerm} placeholder='Search Contacts' />
+        <hr/>
+        </div>
+        <div className = "border-r border-gray-200">
+          <div className="w-full overflow-y-auto"
+          onScroll={(e) => {
+            const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+            if (scrollHeight - scrollTop <= clientHeight + 10 && conversations.length < totalConversations) {
+              // User has scrolled to the bottom (or near)
+              setLoadConversations(true);
+            }
+          }}>
+
+            {/* Filtered Template List */}
+            {conversations.filter(conversation =>
+                        (conversation.contactName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          conversation.contactNumber.toLowerCase().includes(searchTerm.toLowerCase()))
+                      )
+                      .map(conversation => (
+                        <ChatUserItem 
+                        {...decodeMessage(conversation)}
+                        onClick={() => handleConversationClick(conversation.waID)} />
+                      ))}
+            {/* Loading Spinner */}
+            {loadConversations && (
+              <div className="p-3 flex justify-center">
+                <span className="w-6 h-6 mr-2 animate-spin rounded-full border-2 border-gray-300 border-t-transparent inline-block"></span>
+              </div>
+            )}
+                            
+          </div>
+        </div>
       </div>
       <div className='w-full'>
       {
-        contactItem 
-        ? <SelectedChatUsers contactItem = {contactItem} />
+        conversationItem 
+        ? <ConversationArea 
+        conversationItem = {conversationItem} 
+        newConversationMessage={newConversationMessage} 
+        phoneID={phoneID}
+        messageMap={messageMap}
+        setMessageMap={setMessageMap} />
         : <div className='hidden sm:flex flex-col justify-center items-center h-full w-full p-4'>
-            {/* <button onClick={onConnect}>Connect</button> */}
             <div className='max-w-[500px] w-full mx-auto'>
               <Image className='object-contain w-80 h-auto mx-auto' alt='default background image' width={500} height={300} src="/images/empty-chatbox.svg"/>
               <p className='text-sm sm:text-base text-neutral-800/40 font-semibold mt-8 w-full text-center lg:whitespace-nowrap'>Hello! I&apos;m here to assist you with any questions or concerns.</p>

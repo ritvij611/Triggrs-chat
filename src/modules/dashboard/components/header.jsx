@@ -3,12 +3,33 @@ import Link from 'next/link';
 import CompanyLogo from '@/components/general/companylogo';
 import { BoltIcon, Building, LogOut, UserCircle2Icon} from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger} from "@/components/ui/dropdown-menu"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { BellIcon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import Image from 'next/image';
+import { useSelector, useDispatch } from 'react-redux';
+
+const truncateMessage = (message) => {
+    if (message.length <= 30) return message;
+    return message.substring(0, 30) + '...';
+  };
+
+const decodeMessage = (message) =>{
+  const id = message.message.id;
+  const image = "@/public/images/final-logo.svg";
+  const user = message.sender.wa_id;
+  const date = new Date(Number(message.timestamp)*1000);
+  let timestamp;
+  if (!isNaN(date.getTime())) {
+    timestamp = date.toISOString();
+  }
+  const target = truncateMessage(message.message.text.body);
+  const action = "";
+  const unread = true;
+  return { id, image, user, action, target, timestamp, unread };
+}
 
 const initialNotifications = [
   {
@@ -72,8 +93,11 @@ function Dot({ className }) {
 }
 
 export function NotificationComponent() {
-  const [notifications, setNotifications] = useState(initialNotifications)
-  const unreadCount = notifications.filter((n) => n.unread).length
+  const messages = useSelector(state => state.websocket.messages);
+  const read = useSelector(state => state.websocket.read);
+  const dispatch = useDispatch();
+  const [notifications, setNotifications] = useState([])
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const handleMarkAllAsRead = () => {
     setNotifications(
@@ -94,6 +118,19 @@ export function NotificationComponent() {
     )
   }
 
+  useEffect(() => {
+    if(read == false && messages.length > 0){
+      setNotifications((prev) => [
+        ...prev, {...decodeMessage(messages[messages.length-1])}]
+      )
+      setUnreadCount((prev) => prev+1);
+    }
+  },[messages, read]);
+
+  useEffect(() => {
+    if(notifications.length > 0)console.log(notifications)
+  }, [notifications])
+
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -107,15 +144,14 @@ export function NotificationComponent() {
           <div className="text-sm font-semibold">Notifications</div>
           {unreadCount > 0 && (
             <button className="text-xs font-medium hover:underline" onClick={handleMarkAllAsRead}>
-              Mark all as read
+              Dismiss all
             </button>
           )}
         </div>
         <div role="separator" aria-orientation="horizontal" className="bg-border -mx-1 my-1 h-px"></div>
-        {notifications.map((notification) => (
-          <div key={notification.id} className="hover:bg-accent rounded-md px-3 py-2 text-sm transition-colors">
+        {notifications.map((notification,index) => (
+          <div key={index} className="hover:bg-accent rounded-md px-3 py-2 text-sm transition-colors">
             <div className="relative flex items-start gap-3 pe-3">
-              <Image className="size-9 rounded-md" src={notification.image} width={32} height={32} alt={notification.user}/>
               <div className="flex-1 space-y-1">
                 <button className="text-foreground/80 text-left after:absolute after:inset-0" onClick={() => handleNotificationClick(notification.id)}>
                   <span className="text-foreground font-medium hover:underline">{notification.user}</span>{" "}
