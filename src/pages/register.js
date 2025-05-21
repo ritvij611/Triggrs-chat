@@ -45,7 +45,7 @@ const Register = () => {
           // Show success toast
           toast.success('Registration successful!');
           // Redirect to select company
-          router.replace('/select-company');
+          router.push('/select-company');
         }
       } catch (error) {
         console.error('Register error:', error);

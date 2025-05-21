@@ -8,7 +8,10 @@ import jwt from 'jsonwebtoken'
 import ContactManagementComponent from '@/modules/dashboard/contact/components/ContactManagementComponent'
 import { CampaignManagementComponent } from '@/modules/dashboard/campaign/components/CampaignManagementComponent'
 import AgentManagementComponent from '@/modules/dashboard/agent/components/AgentManagementComponent'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { wsInitiate } from '@/store/wsInstance'
+import WhatsAppNotification from '@/components/general/whatsAppNotification'
 
 export async function getServerSideProps(context) {
     // Fetch data from external API
@@ -54,9 +57,19 @@ export default function DashboardPages(props) {
   const router = useRouter();
   const [isHydrated, setIsHydrated] = useState(false);
 
+  const dispatch = useDispatch();
+  const socket = useSelector(state => state.websocket.socket);
+  const connected = useSelector(state => state.websocket.connected);
+  const messages = useSelector((state) => state.websocket.messages);
+
   useEffect(() => {
     setIsHydrated(true);
   }, []);
+
+  useEffect(() => {
+    const phoneID = "100315306037297"
+    wsInitiate(dispatch, phoneID)
+  },[dispatch]);
 
 
   if(!isHydrated) return;
@@ -66,17 +79,18 @@ export default function DashboardPages(props) {
         <DashboardHeader loginData={props} />
         {
             router.query.slug?.[0] == 'inbox'
-            ? <InboxDashboardComponent companyID={'6805ce5c8ceaf44cf44a9718'} />
+            ? <InboxDashboardComponent companyID={'6805ce5c8ceaf44cf44a9718'} messages={messages} />
             : router.query.slug?.[0] == 'templates'
-            ? <TemplateManagementComponent companyID={'6805ce5c8ceaf44cf44a9718'} />
+            ? <TemplateManagementComponent companyID={'6805ce5c8ceaf44cf44a9718'} messages={messages}  />
             : router.query.slug?.[0] == 'contacts'
-            ? <ContactManagementComponent companyID={'6805ce5c8ceaf44cf44a9718'} />
+            ? <ContactManagementComponent companyID={'6805ce5c8ceaf44cf44a9718'} messages={messages} />
             : router.query?.slug?.[0] == 'campaigns'
-            ? <CampaignManagementComponent companyID={'6805ce5c8ceaf44cf44a9718'}/>
+            ? <CampaignManagementComponent companyID={'6805ce5c8ceaf44cf44a9718'} messages={messages} />
             : router.query.slug?.[0] == 'agents'
             ? <AgentManagementComponent />
             : <MainDashboardComponent />
         }
+        
     </div>
   )
 }

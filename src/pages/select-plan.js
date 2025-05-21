@@ -24,11 +24,11 @@ export default function SelectPlan() {
 
     // console.log(user);
     if (!user.authorised) {
-      router.replace('/login');
+      router.push('/login');
     }
 
     if(!company.present){
-      router.replace('/select-company');
+      router.push('/select-company');
     }
     
   }, [user,company]);

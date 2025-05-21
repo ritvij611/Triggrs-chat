@@ -76,7 +76,7 @@ export default function CreateCampaignComponent({ companyID }) {
   useEffect(() => {
     if (createResponse?.status === 200) {
       toast.success(`Campaign added successfully`);
-      router.replace("/dashboard/campaigns");
+      router.push("/dashboard/campaigns");
     } else if (createError) {
       toast.error(createError);
     }

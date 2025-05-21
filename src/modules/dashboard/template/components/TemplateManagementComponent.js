@@ -3,7 +3,7 @@ import React from 'react'
 import ViewTemplatesComponent from './ViewTemplatesComponent';
 import CreateTemplateComponent from './create/CreateTemplateComponent';
 
-export default function TemplateManagementComponent({companyID}) {
+export default function TemplateManagementComponent({companyID, connected, disconnected, messages}) {
   const router = useRouter();
 
   return (

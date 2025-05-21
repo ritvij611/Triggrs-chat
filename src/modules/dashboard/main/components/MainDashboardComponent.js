@@ -1,7 +1,8 @@
 import React from 'react'
 
 export default function MainDashboardComponent() {
-  return (
+  return (<>
     <div>MainDashboardComponent</div>
+    </>
   )
 }

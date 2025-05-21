@@ -18,14 +18,14 @@ const Onboard = () => {
     if(!user || !company) return;
     
     if(!user.authorised) {
-      router.replace('/login');
+      router.push('/login');
     }
 
     if(!company.present) {
-      router.replace('/select-company');
+      router.push('/select-company');
     }
     if(!company.active) {
-      router.replace('/select-plan');
+      router.push('/select-plan');
     }
     
   }, [user, company]);
