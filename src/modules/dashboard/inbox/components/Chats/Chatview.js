@@ -8,6 +8,8 @@ import { MessageSquarePlus } from 'lucide-react';
 import { useFetchConversations } from '../../hooks/useFetchConversations';
 import { useSelector, useDispatch } from 'react-redux';
 import { markRead } from '@/store/webSocketSlice';
+import { useMarkConversationRead } from '../../hooks/useMarkConversationRead';
+import { toast } from 'sonner';
 
 const decodeMessage = (conversation) => {
   const name = conversation.contactName || '';
@@ -32,6 +34,7 @@ const decodeMessage = (conversation) => {
 
 const Chatview = ({phoneID}) => {
   const { allConversations, totalConversations, loadingConversations, conversationError, fetchConversations, cancelConversationsOperation } = useFetchConversations();
+  const { markReadResponse, loadingMark, markingError, markConversationRead, cancelMarkingOperation } = useMarkConversationRead()
   const totalConversationsRef = useRef(0);
   const messages = useSelector(state => state.websocket.messages);
   const read = useSelector(state => state.websocket.read);
@@ -54,7 +57,7 @@ const Chatview = ({phoneID}) => {
     alert('It works-'+i);
   }
 
-  const handleConversationClick = (waID) => {
+  const handleConversationClick = async(waID) => {
     if(!conversationItem || conversationItem.waID !== waID){
     const selected = conversations.find(item => item.waID == waID);
       setConversations(prev => 
@@ -69,8 +72,20 @@ const Chatview = ({phoneID}) => {
         }))
       )
       setConversationItem(selected);
+      await markConversationRead({
+        phoneID,
+        waID
+      })
+    }
   }
-  }
+
+  useEffect(() =>{
+    if(markReadResponse.status === 200){
+      toast.success(markReadResponse.message);
+    } else if(markingError){
+      toast.error(markingError)
+    }
+  },[markReadResponse, markingError])
 
   useEffect(()=>{
     if (!loadConversations) return;
@@ -127,7 +142,7 @@ const Chatview = ({phoneID}) => {
         const updatedItem = {
           ...existing,
           lastMessageBody: message,
-          unreadMessages: conversationItem.waID === waID ? 0 : (existing.unreadMessages || 0) + 1,
+          unreadMessages: conversationItem?.waID === waID ? 0 : (existing.unreadMessages || 0) + 1,
         };
 
         updatedConversations = [

@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Paperclip, Smile, Mic, Send, Check, Clock, MoreVertical, Phone, Video } from 'lucide-react';
 import { useFetchConversationMessages } from '../../hooks/useFetchConversationMessages';
+import { useMarkConversationRead } from '../../hooks/useMarkConversationRead';
+import { toast } from 'sonner';
 
 const MessageStatus = ({ status }) => {
   if (status === "sent") {
@@ -32,6 +34,7 @@ export const ConversationArea = ({
   setMessageMap,
 }) => {
   const { allConversationMessages, totalConversationMessages, loadingConversationMessages, conversationMessageError, fetchConversationMessages, cancelConversationMessagesOperation } = useFetchConversationMessages();
+  
   const [conversationMessages, setConversationMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef(null);
@@ -82,7 +85,6 @@ export const ConversationArea = ({
 
 
   useEffect(() => {
-    
     if (allConversationMessages) {
       totalConversationMessagesRef.current = totalConversationMessages;
       const previousScrollHeight = messagesContainerRef.current.scrollHeight;
@@ -98,6 +100,8 @@ export const ConversationArea = ({
       setLoadMessages(false);
     }
   }, [allConversationMessages, conversationMessageError, totalConversationMessages]);
+
+  
 
   useEffect(() => {
     setMessageMap((prev) => {
