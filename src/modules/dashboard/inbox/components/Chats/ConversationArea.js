@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Paperclip, Smile, Mic, Send, Check, Clock, MoreVertical, Phone, Video } from 'lucide-react';
 import { useFetchConversationMessages } from '../../hooks/useFetchConversationMessages';
+import { useMarkConversationRead } from '../../hooks/useMarkConversationRead';
+import { toast } from 'sonner';
 
 const MessageStatus = ({ status }) => {
   if (status === "sent") {
@@ -32,10 +34,12 @@ export const ConversationArea = ({
   setMessageMap,
 }) => {
   const { allConversationMessages, totalConversationMessages, loadingConversationMessages, conversationMessageError, fetchConversationMessages, cancelConversationMessagesOperation } = useFetchConversationMessages();
+  
   const [conversationMessages, setConversationMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
+  const totalConversationMessagesRef = useRef(0);
 
   const [loadMessages, setLoadMessages] = useState(true);
 
@@ -45,9 +49,13 @@ export const ConversationArea = ({
 
   useEffect(() => {
     if(conversationItem){
-      setConversationMessages(messageMap.get(conversationItem.waID) || []);
+      setConversationMessages(messageMap.get(conversationItem.waID)?.messages || []);
+      totalConversationMessagesRef.current = messageMap.get(conversationItem.waID)?.totalCount || 0;
       setNewMessage("");
       scrollToBottom();
+      if(totalConversationMessagesRef.current == 0){
+        setLoadMessages(true)
+      }
     }
   },[conversationItem]);
 
@@ -59,7 +67,7 @@ export const ConversationArea = ({
           phoneID,
           waID: conversationItem.waID,
           limit: 10,
-          index: conversationMessages.length / 10,
+          index: conversationMessages.length/10,
         });
       }  
     };
@@ -71,29 +79,43 @@ export const ConversationArea = ({
   useEffect(()=>{
     if(newConversationMessage && conversationMessages && conversationMessages.length > 0)
       setConversationMessages(prev => [newConversationMessage, ...prev]);
+      totalConversationMessagesRef.current++;
       scrollToBottom();
   },[newConversationMessage]);
 
 
   useEffect(() => {
-    if (allConversationMessages.length > 0) {
+    if (allConversationMessages) {
+      totalConversationMessagesRef.current = totalConversationMessages;
       const previousScrollHeight = messagesContainerRef.current.scrollHeight;
-      setConversationMessages((prev) => [...prev, ...allConversationMessages]);
-      setMessageMap((prev) => {
-        const updated = new Map(prev);
-        updated.set(conversationItem.waID, conversationMessages);
-        return updated;
+      setConversationMessages(prev => {
+        const existingMsgIDs = new Set(prev.map(msg => msg.messageObject.id));
+        const newUniqueMessages = allConversationMessages.filter(
+          msg => !existingMsgIDs.has(msg.messageObject.id)
+        );
+        return [...prev, ...newUniqueMessages];
       });
-      setLoadMessages(false);
       requestAnimationFrame(() => {
         const newScrollHeight = messagesContainerRef.current.scrollHeight;
         messagesContainerRef.current.scrollTop = newScrollHeight - previousScrollHeight;
       });
+       
+      setLoadMessages(false);
     } else if (conversationMessageError) {
       toast.error(conversationMessageError);
       setLoadMessages(false);
     }
   }, [allConversationMessages, conversationMessageError, totalConversationMessages]);
+
+  
+
+  useEffect(() => {
+    setMessageMap((prev) => {
+      const updated = new Map(prev);
+      updated.set(conversationItem.waID, {messages: conversationMessages, totalCount: totalConversationMessagesRef.current});
+      return updated;
+    }); 
+  },[conversationMessages.length, totalConversationMessagesRef.current])
 
   const handleSendMessage = () => {
     if (newMessage.trim() === "") return;
@@ -158,13 +180,12 @@ export const ConversationArea = ({
         {loadMessages && (
           <div className="p-3 flex justify-center items-center">
             <div className="w-6 h-6 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-            <span className="ml-2 text-sm text-gray-600">Loading messages...</span>
           </div>
         )}
 
         
         {/* Show messages in chronological order (oldest to newest) */}
-        {(conversationMessages && conversationMessages.length > 0) 
+        {(conversationMessages?.length) 
         ? 
         ([...conversationMessages].reverse().map((message) => (
           <div 
