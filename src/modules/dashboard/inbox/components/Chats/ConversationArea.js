@@ -67,7 +67,7 @@ export const ConversationArea = ({
           phoneID,
           waID: conversationItem.waID,
           limit: 10,
-          index: conversationMessages.length,
+          index: conversationMessages.length/10,
         });
       }  
     };
@@ -88,7 +88,13 @@ export const ConversationArea = ({
     if (allConversationMessages) {
       totalConversationMessagesRef.current = totalConversationMessages;
       const previousScrollHeight = messagesContainerRef.current.scrollHeight;
-      setConversationMessages((prev) => [...prev, ...allConversationMessages]);
+      setConversationMessages(prev => {
+        const existingMsgIDs = new Set(prev.map(msg => msg.messageObject.id));
+        const newUniqueMessages = allConversationMessages.filter(
+          msg => !existingMsgIDs.has(msg.messageObject.id)
+        );
+        return [...prev, ...newUniqueMessages];
+      });
       requestAnimationFrame(() => {
         const newScrollHeight = messagesContainerRef.current.scrollHeight;
         messagesContainerRef.current.scrollTop = newScrollHeight - previousScrollHeight;

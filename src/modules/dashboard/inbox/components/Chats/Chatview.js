@@ -59,7 +59,7 @@ const Chatview = ({phoneID}) => {
 
   const handleConversationClick = async(waID) => {
     if(!conversationItem || conversationItem.waID !== waID){
-    const selected = conversations.find(item => item.waID == waID);
+      const selected = conversations.find(item => item.waID == waID);
       setConversations(prev => 
         prev.map((item => {
           if(item.waID == waID){
@@ -72,10 +72,12 @@ const Chatview = ({phoneID}) => {
         }))
       )
       setConversationItem(selected);
-      await markConversationRead({
-        phoneID,
-        waID
-      })
+      if(selected.unreadMessages){
+        await markConversationRead({
+          phoneID,
+          waID
+        })
+      }
     }
   }
 
@@ -120,7 +122,7 @@ const Chatview = ({phoneID}) => {
       setMessageMap((prev) => {
         const update = new Map(prev);
         const exist = update.get(waID);
-        if(exist){
+        if(exist && conversationItem?.waID == waID){
           update.set(waID, {
             messages: [newMessage, ...exist.messages],
             totalCount: exist.totalCount ? exist.totalCount + 1 : 0,
@@ -158,8 +160,6 @@ const Chatview = ({phoneID}) => {
           unreadMessages: 1,
         };
 
-        totalConversationsRef.current++;
-
         updatedConversations = [newConversation, ...conversations];
       }
 
@@ -168,17 +168,27 @@ const Chatview = ({phoneID}) => {
     }
   }, [messages]);
 
-
   useEffect(() => {
     if (allConversations) {
-      setConversations((prev) => [...prev, ...allConversations]);
-      if(!totalConversationsRef.current)totalConversationsRef.current = totalConversations;
+      setConversations(prev => {
+        const existingWaIDs = new Set(prev.map(conv => conv.waID));
+        const newUniqueConversations = allConversations.filter(
+          conv => !existingWaIDs.has(conv.waID)
+        );
+        return [...prev, ...newUniqueConversations];
+      });
+
+      if (!totalConversationsRef.current) {
+        totalConversationsRef.current = totalConversations;
+      }
+
       setLoadConversations(false);
     } else if (conversationError) {
       toast.error(conversationError);
       setLoadConversations(false);
     }
   }, [allConversations, conversationError, totalConversations]);
+
 
 
 
