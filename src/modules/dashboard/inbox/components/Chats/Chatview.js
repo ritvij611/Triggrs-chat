@@ -8,6 +8,8 @@ import { MessageSquarePlus } from 'lucide-react';
 import { useFetchConversations } from '../../hooks/useFetchConversations';
 import { useSelector, useDispatch } from 'react-redux';
 import { markRead } from '@/store/webSocketSlice';
+import { useMarkConversationRead } from '../../hooks/useMarkConversationRead';
+import { toast } from 'sonner';
 
 const decodeMessage = (conversation) => {
   const name = conversation.contactName || '';
@@ -32,7 +34,8 @@ const decodeMessage = (conversation) => {
 
 const Chatview = ({phoneID}) => {
   const { allConversations, totalConversations, loadingConversations, conversationError, fetchConversations, cancelConversationsOperation } = useFetchConversations();
-
+  const { markReadResponse, loadingMark, markingError, markConversationRead, cancelMarkingOperation } = useMarkConversationRead()
+  const totalConversationsRef = useRef(0);
   const messages = useSelector(state => state.websocket.messages);
   const read = useSelector(state => state.websocket.read);
   const dispatch = useDispatch();
@@ -54,22 +57,37 @@ const Chatview = ({phoneID}) => {
     alert('It works-'+i);
   }
 
-  const handleConversationClick = (waID) => {
-    const selected = conversations.find(item => item.waID == waID);
-    setConversations(prev => 
-      prev.map((item => {
-        if(item.waID == waID){
-          return {
-            ...item,
-            unreadMessages: 0,
+  const handleConversationClick = async(waID) => {
+    if(!conversationItem || conversationItem.waID !== waID){
+      const selected = conversations.find(item => item.waID == waID);
+      setConversations(prev => 
+        prev.map((item => {
+          if(item.waID == waID){
+            return {
+              ...item,
+              unreadMessages: 0,
+            }
           }
-        }
-        return item
-      }))
-    )
-    setConversationItem(selected);
-
+          return item
+        }))
+      )
+      setConversationItem(selected);
+      if(selected.unreadMessages){
+        await markConversationRead({
+          phoneID,
+          waID
+        })
+      }
+    }
   }
+
+  useEffect(() =>{
+    if(markReadResponse.status === 200){
+      toast.success(markReadResponse.message);
+    } else if(markingError){
+      toast.error(markingError)
+    }
+  },[markReadResponse, markingError])
 
   useEffect(()=>{
     if (!loadConversations) return;
@@ -92,13 +110,31 @@ const Chatview = ({phoneID}) => {
       const message = lastMessage.message;
       const sender = lastMessage.sender;
       const waID = sender.wa_id;
-      if(conversationItem.waID == waID){
-        setNewConversationMessage({
-          messageObject: message, 
-          messageType: "RECEIVED",
-          read: false,
-        })
+      const newMessage = {
+        messageObject: message, 
+        messageType: "RECEIVED",
+        read: false,
       }
+      if(conversationItem?.waID == waID){
+        setNewConversationMessage(newMessage)
+      }
+
+      setMessageMap((prev) => {
+        const update = new Map(prev);
+        const exist = update.get(waID);
+        if(exist && conversationItem?.waID == waID){
+          update.set(waID, {
+            messages: [newMessage, ...exist.messages],
+            totalCount: exist.totalCount ? exist.totalCount + 1 : 0,
+          })
+        } else {
+          update.set(waID, {
+            messages: [newMessage],
+            totalCount: 0,
+          })
+        }
+        return update;
+      })
 
       const existing = conversations.find(item => item.waID === waID);
 
@@ -108,7 +144,7 @@ const Chatview = ({phoneID}) => {
         const updatedItem = {
           ...existing,
           lastMessageBody: message,
-          unreadMessages: conversationItem.waID === waID ? 0 : (existing.unreadMessages || 0) + 1,
+          unreadMessages: conversationItem?.waID === waID ? 0 : (existing.unreadMessages || 0) + 1,
         };
 
         updatedConversations = [
@@ -132,16 +168,27 @@ const Chatview = ({phoneID}) => {
     }
   }, [messages]);
 
-
   useEffect(() => {
-    if (allConversations.length) {
-      setConversations((prev) => [...prev, ...allConversations]);
+    if (allConversations) {
+      setConversations(prev => {
+        const existingWaIDs = new Set(prev.map(conv => conv.waID));
+        const newUniqueConversations = allConversations.filter(
+          conv => !existingWaIDs.has(conv.waID)
+        );
+        return [...prev, ...newUniqueConversations];
+      });
+
+      if (!totalConversationsRef.current) {
+        totalConversationsRef.current = totalConversations;
+      }
+
       setLoadConversations(false);
     } else if (conversationError) {
       toast.error(conversationError);
       setLoadConversations(false);
     }
   }, [allConversations, conversationError, totalConversations]);
+
 
 
 
@@ -160,7 +207,7 @@ const Chatview = ({phoneID}) => {
           <div className="w-full overflow-y-auto"
           onScroll={(e) => {
             const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-            if (scrollHeight - scrollTop <= clientHeight + 10 && conversations.length < totalConversations) {
+            if (scrollHeight - scrollTop <= clientHeight + 10 && conversations.length < totalConversationsRef.current) {
               // User has scrolled to the bottom (or near)
               setLoadConversations(true);
             }
