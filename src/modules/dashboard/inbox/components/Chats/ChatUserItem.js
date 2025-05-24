@@ -1,6 +1,29 @@
 import PropTypes from 'prop-types'
+import { Clock, Check } from 'lucide-react';
 
-export default function ChatUserItem({time="20:59", name="Tw", message='dofijhpjpo', messageCount=2, onClick=()=>{}, onMenuClick=()=>{}, chatStatus="Active"}) {
+const MessageStatus = ({ status }) => {
+  if (status === "SENT") {
+    return <Check className="text-gray-400 w-4 h-4" />;
+  } else if (status === "DELIVERED") {
+    return (
+      <div className="flex">
+        <Check className="text-gray-400 w-4 h-4" />
+        <Check className="text-gray-400 w-4 h-4 -ml-2" />
+      </div>
+    );
+  } else if (status === "READ") {
+    return (
+      <div className="flex">
+        <Check className="text-blue-500 w-4 h-4" />
+        <Check className="text-blue-500 w-4 h-4 -ml-2" />
+      </div>
+    );
+  } else {
+    return <Clock className="text-gray-400 w-4 h-4" />;
+  }
+};
+
+export default function ChatUserItem({time="20:59", name="Tw", message='dofijhpjpo', messageCount=2, onClick=()=>{}, onMenuClick=()=>{}, chatStatus="Active", status, messageType}) {
   return (
         <div onContextMenu={onMenuClick} className="flex flex-nowrap items-center px-3 w-full font-inter border-gray-200 h-[72px] border-b group hover:bg-green-400/10">
             {/* <Image alt="team" className="w-10 h-10 object-cover object-center flex-shrink-0 rounded-full mr-3" src="/images/dummy-image.png" width={100} height={100} /> */}
@@ -8,9 +31,12 @@ export default function ChatUserItem({time="20:59", name="Tw", message='dofijhpj
             <div onClick={onClick} role="button" className="w-full flex flex-col justify-between whitespace-nowrap overflow-hidden text-ellipsis flex-1">
                 <h3 className="w-full flex justify-start gap-x-2 items-center">
                     <span className="inline-block text-left  w-fit font-medium text-neutral-800 mb-1 text-sm font-inter transition duration-100 truncate">{name}</span>
-                    <span className={`${chatStatus == 'CLOSED' ? 'bg-red-600/10 text-red-600' : 'bg-green-600/10 text-green-600'} py-0.5 px-1 rounded-sm text-[10px] font-medium`}>{chatStatus}</span>
+                    <span className={`${chatStatus == 'Closed' ? 'bg-red-600/10 text-red-600' : 'bg-green-600/10 text-green-600'} py-0.5 px-1 rounded-sm text-[10px] font-medium`}>{chatStatus}</span>
                 </h3>
+                <div className='flex'>
+                {messageType != "RECEIVED" && <MessageStatus status={status}/>}
                 <span className="block text-xs  text-gray-600 truncate w-[95%]">{message}</span>
+                </div>
             </div>
             <div className='flex flex-col gap-y-1 items-center w-fit justify-end'>
                 <span className="text-xs text-gray-500">{time}</span>
