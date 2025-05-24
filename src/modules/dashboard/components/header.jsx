@@ -120,10 +120,13 @@ export function NotificationComponent() {
 
   useEffect(() => {
     if(read == false && messages.length > 0){
-      setNotifications((prev) => [
-        ...prev, {...decodeMessage(messages[messages.length-1])}]
-      )
-      setUnreadCount((prev) => prev+1);
+      if(messages[messages.length-1].type ==="Inbox Message")
+      {
+        setNotifications((prev) => [
+          ...prev, {...decodeMessage(messages[messages.length-1])}]
+        )
+        setUnreadCount((prev) => prev+1)
+      }
     }
   },[messages, read]);
 
