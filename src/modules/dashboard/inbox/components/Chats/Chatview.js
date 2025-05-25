@@ -15,8 +15,8 @@ const decodeMessage = (conversation) => {
   const name = conversation.contactName || '';
   const waID = conversation.waID || '';
 
-  let time = '';
-  const timestamp = conversation?.lastMessageBody?.timestamp;
+  let time = '-';
+  const timestamp = conversation?.lastMessageBody?.sentAt;
   if (timestamp) {
     const date = new Date(Number(timestamp)*1000);
     if (!isNaN(date.getTime())) {
@@ -24,10 +24,13 @@ const decodeMessage = (conversation) => {
     }
   }
 
-  const message = conversation?.lastMessageBody?.text?.body || '';
+  const msg = conversation?.lastMessageBody?.messageObject?.text?.body || '';
+  const message = msg.substring(0, 40) + (msg.length > 40 ? '...':'');
   const messageCount = conversation.unreadMessages || 0;
+  const messageType = conversation?.lastMessageBody?.messageType
+  const status = conversation?.lastMessageBody?.status
 
-  return { name, waID, time, message, messageCount };
+  return { name, waID, time, message, messageCount, messageType, status };
 };
 
 
@@ -45,6 +48,8 @@ const Chatview = ({phoneID}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [loadConversations, setLoadConversations] = useState(true);
   const [newConversationMessage, setNewConversationMessage] = useState({});
+  const [statusUpdate, setStatusUpdate] = useState({id:'', status:'', timestamp:''});
+  const [send, setSend] = useState(false);
 
   const [messageMap, setMessageMap] = useState(new Map());
 
@@ -70,7 +75,8 @@ const Chatview = ({phoneID}) => {
           }
           return item
         }))
-      )
+      );
+      
       setConversationItem(selected);
       if(selected.unreadMessages){
         await markConversationRead({
@@ -80,6 +86,10 @@ const Chatview = ({phoneID}) => {
       }
     }
   }
+
+  useEffect(() =>{
+    console.log(conversations)
+  },[conversations]);
 
   useEffect(() =>{
     if(markReadResponse.status === 200){
@@ -105,77 +115,136 @@ const Chatview = ({phoneID}) => {
   },[loadConversations]);
 
   useEffect(() => {
-    if (messages.length > 0 && read == false) {
-      const lastMessage = messages[messages.length - 1];
-      const message = lastMessage.message;
-      const sender = lastMessage.sender;
-      const waID = sender.wa_id;
-      const newMessage = {
-        messageObject: message, 
-        messageType: "RECEIVED",
-        read: false,
-      }
-      if(conversationItem?.waID == waID){
-        setNewConversationMessage(newMessage)
-      }
+  if (messages.length === 0 || read) return;
 
-      setMessageMap((prev) => {
-        const update = new Map(prev);
-        const exist = update.get(waID);
-        if(exist && conversationItem?.waID == waID){
-          update.set(waID, {
-            messages: [newMessage, ...exist.messages],
-            totalCount: exist.totalCount ? exist.totalCount + 1 : 0,
-          })
-        } else {
-          update.set(waID, {
-            messages: [newMessage],
-            totalCount: 0,
-          })
-        }
-        return update;
-      })
+  const lastMessage = messages[messages.length - 1];
 
-      const existing = conversations.find(item => item.waID === waID);
+  if (lastMessage.type === "Inbox Message") {
+    const { message, sender } = lastMessage;
+    const waID = sender.wa_id;
 
-      let updatedConversations;
+    const newMessage = {
+      messageObject: message,
+      messageType: "RECEIVED",
+      sentAt: message.timestamp
 
-      if (existing) {
-        const updatedItem = {
-          ...existing,
-          lastMessageBody: message,
-          unreadMessages: conversationItem?.waID === waID ? 0 : (existing.unreadMessages || 0) + 1,
-        };
+    };
 
-        updatedConversations = [
-          updatedItem,
-          ...conversations.filter(item => item.waID !== waID)
-        ];
-      } else {
-        const newConversation = {
-          waID,
-          contactName: sender.profile.name,
-          contactNumber: sender.wa_id, 
-          lastMessageBody: message,
-          unreadMessages: 1,
-        };
-
-        updatedConversations = [newConversation, ...conversations];
-      }
-
-      setConversations(updatedConversations);
-      dispatch(markRead());
+    if (conversationItem?.waID === waID) {
+      setNewConversationMessage(newMessage);
     }
-  }, [messages]);
+
+    setMessageMap((prev) => {
+      const update = new Map(prev);
+      const exist = update.get(waID);
+
+      const newMessages = exist ? [newMessage, ...exist.messages] : [newMessage];
+      const totalCount = exist ? (exist.totalCount || 0) + 1 : 1;
+
+      update.set(waID, {
+        messages: newMessages,
+        totalCount,
+      });
+
+      return update;
+    });
+
+    setConversations((prev) => {
+      const existing = prev.find(item => item.waID === waID);
+      const isCurrent = conversationItem?.waID === waID;
+
+      const updatedItem = {
+        ...existing,
+        waID,
+        contactName: sender.profile.name,
+        contactNumber: waID,
+        lastMessageBody: {
+          messageObject: message,
+          sentAt: message.timestamp,
+        },
+        unreadMessages: isCurrent ? 0 : ((existing?.unreadMessages || 0) + 1),
+        serviceWindowExpiry: (Number(message.timestamp) + 86400).toString(),
+      };
+
+      const filtered = prev.filter(item => item.waID !== waID);
+      return [updatedItem, ...filtered];
+    });
+
+    dispatch(markRead());
+
+  } else if (lastMessage.type === "Message Status Change") {
+    const message = lastMessage.message;
+    const waID = message.recipient_id;
+
+    // Update status for active conversation
+    if (waID === conversationItem?.waID) {
+      setStatusUpdate({
+        id: message.id,
+        status: message.status.toUpperCase(),
+        timestamp: message.timestamp
+      });
+    }
+
+    // Update status in messageMap
+    setMessageMap((prev) => {
+      const update = new Map(prev);
+      const messages = update.get(waID)?.messages || [];
+
+      const updatedMessages = messages.map(item => {
+        if (item.messageObject?.id !== message.id) return item;
+        return {
+          ...item,
+          status: message.status.toUpperCase(),
+          sentAt: message.status == "sent" ? message.timestamp : item.sentAt 
+        };
+      });
+
+      update.set(waID, {
+        messages: updatedMessages,
+        totalCount: update.get(waID)?.totalCount || 0,
+      });
+
+      return update;
+    });
+
+    setConversations(prev => {
+      return prev.map(item => {
+        if (item.lastMessageBody?.messageObject?.id === message.id) {
+          return {
+            ...item,
+            lastMessageBody: {
+              ...item.lastMessageBody,
+              status: message.status.toUpperCase(),
+              sentAt: message.status === "sent" ? message.timestamp : item.lastMessageBody.sentAt
+            }
+          };
+        }
+        return item;
+      });
+    });
+
+  }
+}, [messages]);
+
+
+  useEffect(() => {
+    if(send){
+      setConversations((prev) => [
+        conversationItem, ...prev.filter(item => item.waID != conversationItem.waID)
+      ])
+      setSend(false)
+    }
+  },[send]);
 
   useEffect(() => {
     if (allConversations) {
+      console.log(allConversations);
       setConversations(prev => {
-        const existingWaIDs = new Set(prev.map(conv => conv.waID));
-        const newUniqueConversations = allConversations.filter(
-          conv => !existingWaIDs.has(conv.waID)
-        );
-        return [...prev, ...newUniqueConversations];
+        const existingMap = new Map(prev.map(conv => [conv.waID, conv]));
+        allConversations.forEach(conv => {
+          existingMap.set(conv.waID, conv); 
+        });
+        return Array.from(existingMap.values());
       });
 
       if (!totalConversationsRef.current) {
@@ -188,6 +257,7 @@ const Chatview = ({phoneID}) => {
       setLoadConversations(false);
     }
   }, [allConversations, conversationError, totalConversations]);
+
 
 
 
@@ -221,6 +291,7 @@ const Chatview = ({phoneID}) => {
                       .map(conversation => (
                         <ChatUserItem 
                         {...decodeMessage(conversation)}
+                        chatStatus={`${conversation.waID == conversationItem?.waID ? "Active":"Closed"}`}
                         onClick={() => handleConversationClick(conversation.waID)} />
                       ))}
             {/* Loading Spinner */}
@@ -238,10 +309,15 @@ const Chatview = ({phoneID}) => {
         conversationItem 
         ? <ConversationArea 
         conversationItem = {conversationItem} 
+        setConversationItem={setConversationItem}
         newConversationMessage={newConversationMessage} 
+        statusUpdate={statusUpdate}
         phoneID={phoneID}
         messageMap={messageMap}
-        setMessageMap={setMessageMap} />
+        setMessageMap={setMessageMap}
+        send={send}
+        setSend={setSend}
+        />
         : <div className='hidden sm:flex flex-col justify-center items-center h-full w-full p-4'>
             <div className='max-w-[500px] w-full mx-auto'>
               <Image className='object-contain w-80 h-auto mx-auto' alt='default background image' width={500} height={300} src="/images/empty-chatbox.svg"/>

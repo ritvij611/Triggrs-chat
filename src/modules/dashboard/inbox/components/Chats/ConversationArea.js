@@ -1,20 +1,21 @@
 import { useState, useRef, useEffect } from 'react';
-import { Paperclip, Smile, Mic, Send, Check, Clock, MoreVertical, Phone, Video } from 'lucide-react';
+import { Paperclip, Smile, Mic, Send, Check, Clock, MoreVertical, Phone, Video, Loader } from 'lucide-react';
 import { useFetchConversationMessages } from '../../hooks/useFetchConversationMessages';
 import { useMarkConversationRead } from '../../hooks/useMarkConversationRead';
 import { toast } from 'sonner';
+import { useSendMessage } from '../../hooks/useSendMessage';
 
 const MessageStatus = ({ status }) => {
-  if (status === "sent") {
+  if (status === "SENT") {
     return <Check className="text-gray-400 w-4 h-4" />;
-  } else if (status === "delivered") {
+  } else if (status === "DELIVERED") {
     return (
       <div className="flex">
         <Check className="text-gray-400 w-4 h-4" />
         <Check className="text-gray-400 w-4 h-4 -ml-2" />
       </div>
     );
-  } else if (status === "read") {
+  } else if (status === "READ") {
     return (
       <div className="flex">
         <Check className="text-blue-500 w-4 h-4" />
@@ -28,15 +29,19 @@ const MessageStatus = ({ status }) => {
 
 export const ConversationArea = ({
   conversationItem, 
+  setConversationItem,
   newConversationMessage, 
   phoneID,
   messageMap,
   setMessageMap,
+  statusUpdate,
+  send, setSend
 }) => {
   const { allConversationMessages, totalConversationMessages, loadingConversationMessages, conversationMessageError, fetchConversationMessages, cancelConversationMessagesOperation } = useFetchConversationMessages();
-  
+  const { sendResponse, isSending, sendError, handleSend, cancelSend } = useSendMessage();
   const [conversationMessages, setConversationMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
+  const [sending, setSending] = useState(false);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const totalConversationMessagesRef = useRef(0);
@@ -48,6 +53,24 @@ export const ConversationArea = ({
   };
 
   useEffect(() => {
+    if (statusUpdate?.id) {
+      setConversationMessages((prev) =>
+        prev.map(item => {
+          if (item.messageObject?.id === statusUpdate.id) {
+            return {
+              ...item,
+              status: statusUpdate.status.toUpperCase(),
+              sentAt: statusUpdate.status == "sent" ? statusUpdate.timestamp : item.sentAt
+            };
+          }
+          return item;
+        })
+      );
+    }
+  }, [statusUpdate]);
+
+
+  useEffect(() => {
     if(conversationItem){
       setConversationMessages(messageMap.get(conversationItem.waID)?.messages || []);
       totalConversationMessagesRef.current = messageMap.get(conversationItem.waID)?.totalCount || 0;
@@ -57,7 +80,7 @@ export const ConversationArea = ({
         setLoadMessages(true)
       }
     }
-  },[conversationItem]);
+  },[conversationItem.waID]);
 
   useEffect(()=>{
     if (loadMessages == false) return;
@@ -115,28 +138,63 @@ export const ConversationArea = ({
       updated.set(conversationItem.waID, {messages: conversationMessages, totalCount: totalConversationMessagesRef.current});
       return updated;
     }); 
-  },[conversationMessages.length, totalConversationMessagesRef.current])
+  },[conversationMessages?.length, totalConversationMessagesRef.current]);
 
-  const handleSendMessage = () => {
-    if (newMessage.trim() === "") return;
+  useEffect(() => {
+
+    if(sendResponse?.status == 200){
+      const newMsg = {
+        messageObject: {
+          id: sendResponse?.data.messages[0].id,
+          timestamp: "-",
+          text: {
+            body: newMessage,
+          },
+          type: "text"
+        },
+        messageType: "TEXT",
+        sentAt: "-",
+        status: "unknown"
+      };
+      setConversationMessages((prev) => [newMsg, ...prev]);
+      setConversationItem((prev) => ({
+        ...prev, 
+        lastMessageBody: newMsg
+      }));
+      setSend(true)
+      setNewMessage("");
+      setSending(false);
+    } else if(sendError){
+      toast.error("Sending message failed");
+      setSending(false);
+    }
+  },[sendResponse, sendError])
+
+
+  const handleSendMessage = async() => {
+    if (newMessage?.trim() === "") return;
     
-    const currentTime = new Date();
-    const formattedTime = currentTime.toLocaleString('en-US', { 
+    const currentTime = (Math.floor(new Date())/1000).toString();
+    if(currentTime >= conversationItem.serviceWindowExpiry){
+      toast.error("Customer service window for this contact has expired")
+      return;
+    }
+    const formattedTime = currentTime?.toLocaleString('en-US', { 
       hour: 'numeric', 
       minute: 'numeric', 
       hour12: true 
     });
     
-    const newMsg = {
-      id: messages.length + 1,
-      content: newMessage,
-      timestamp: formattedTime,
-      sender: "self",
-      status: "sent"
-    };
+    setSending(true);
+
+    await handleSend({
+      phoneID,
+      waID: conversationItem.waID,
+      message: newMessage
+    })
     
-    setConversationMessages([newMsg, ...conversationMessages]);
-    setNewMessage("");
+    // setConversationMessages([newMsg, ...conversationMessages]);
+    // setNewMessage("");
   
   };
 
@@ -171,7 +229,7 @@ export const ConversationArea = ({
         className="flex-1 p-4 overflow-y-auto bg-[#e5ded8] flex flex-col"
         onScroll={(e) => {
           const { scrollTop } = e.currentTarget;
-          if (scrollTop == 0 && conversationMessages.length < totalConversationMessages){
+          if (scrollTop == 0 && conversationMessages?.length < totalConversationMessages){
             setLoadMessages(true);
           }
         }}
@@ -189,20 +247,20 @@ export const ConversationArea = ({
         ? 
         ([...conversationMessages].reverse().map((message) => (
           <div 
-            key={message.messageObject.id} 
-            className={`flex ${message.messageType !== 'RECEIVED' ? 'justify-end' : 'justify-start'} mb-4`}
+            key={message?.messageObject.id} 
+            className={`flex ${message?.messageType !== 'RECEIVED' ? 'justify-end' : 'justify-start'} mb-4`}
           >
             <div 
               className={`p-3 rounded-lg max-w-xs md:max-w-md ${
-                message.messageType !== 'RECEIVED' 
+                message?.messageType !== 'RECEIVED' 
                   ? 'bg-green-100 rounded-tr-none' 
                   : 'bg-white rounded-tl-none'
               }`}
             >
-              <div className="text-sm break-words">{message.messageObject.text.body}</div>
+              <div className="text-sm break-words">{message?.messageObject?.text?.body || "🚫 THIS MESSAGE CAN BE VIEWED IN THE ORIGINAL WHATSAPP APP"}</div>
               <div className="text-right mt-1 flex items-center justify-end">
-                <span className="text-xs text-gray-500 mr-1">{message.messageObject.timestamp}</span>
-                {message.messageType !== 'RECEIVED' && <MessageStatus status={message.status} />}
+                <span className="text-xs text-gray-500 mr-1">{message?.sentAt}</span>
+                {message?.messageType !== 'RECEIVED' && <MessageStatus status={message?.status} />}
               </div>
             </div>
           </div>
@@ -210,19 +268,17 @@ export const ConversationArea = ({
         :
         (
           <div 
-            className={`flex ${conversationItem.lastMessageBody.messageType === 'RECEIVED' ? 'justify-end' : 'justify-start'} mb-4`}
+            className={`flex ${conversationItem.lastMessageBody?.messageType !== 'RECEIVED' ? 'justify-end' : 'justify-start'} mb-4`}
           >
             <div 
               className={`p-3 rounded-lg max-w-xs md:max-w-md ${
-                conversationItem.lastMessageBody.messageType === 'RECEIVED' 
+                conversationItem.lastMessageBody?.messageType !== 'RECEIVED' 
                   ? 'bg-green-100 rounded-tr-none' 
                   : 'bg-white rounded-tl-none'
               }`}
             >
-              <div className="text-sm break-words">{conversationItem.lastMessageBody.text.body}</div>
+              <div className="text-sm break-words">{conversationItem.lastMessageBody?.messageObject?.text.body || "🚫 THIS MESSAGE CAN BE VIEWED IN THE ORIGINAL WHATSAPP APP"}</div>
               <div className="text-right mt-1 flex items-center justify-end">
-                <span className="text-xs text-gray-500 mr-1">{conversationItem.lastMessageBody.text.body}</span>
-                {conversationItem.lastMessageBody.messageType === 'RECEIVED' && <MessageStatus status={message.status} />}
               </div>
             </div>
           </div>
@@ -258,7 +314,7 @@ export const ConversationArea = ({
             onClick={handleSendMessage}
             disabled={!newMessage.trim()}
           >
-            {newMessage.trim() ? <Send className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            {newMessage.trim() == "" ? <Mic className="w-5 h-5" /> : sending ? <Loader className='w-5 h-5' /> : <Send className="w-5 h-5" />}
           </button>
         </div>
       </div>
