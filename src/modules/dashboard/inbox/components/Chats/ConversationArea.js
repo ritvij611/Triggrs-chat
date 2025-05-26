@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
-import { Paperclip, Smile, Mic, Send, Check, Clock, MoreVertical, Phone, Video, Loader } from 'lucide-react';
+import { Paperclip, Plus, X, Smile, Mic, Send, Check, Clock, MoreVertical, Phone, Video, Loader, File, FileText, Image } from 'lucide-react';
 import { useFetchConversationMessages } from '../../hooks/useFetchConversationMessages';
-import { useMarkConversationRead } from '../../hooks/useMarkConversationRead';
 import { toast } from 'sonner';
 import { useSendMessage } from '../../hooks/useSendMessage';
+import { DocumentUploader } from './DocumentUploader';
 
 const MessageStatus = ({ status }) => {
   if (status === "SENT") {
@@ -31,7 +31,7 @@ export const ConversationArea = ({
   conversationItem, 
   setConversationItem,
   newConversationMessage, 
-  phoneID,
+  phoneID, companyID,
   messageMap,
   setMessageMap,
   statusUpdate,
@@ -45,8 +45,14 @@ export const ConversationArea = ({
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const totalConversationMessagesRef = useRef(0);
+  const [selectedPhoto, setSelectedPhoto] = useState({});
+  const [selectedDoc, setSelectedDoc] = useState({});
 
   const [loadMessages, setLoadMessages] = useState(true);
+
+  const [photos, setPhotos] = useState([]);
+  
+  const [docs, setDocs] = useState([]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -75,12 +81,14 @@ export const ConversationArea = ({
       setConversationMessages(messageMap.get(conversationItem.waID)?.messages || []);
       totalConversationMessagesRef.current = messageMap.get(conversationItem.waID)?.totalCount || 0;
       setNewMessage("");
-      scrollToBottom();
+      setSelectedDoc({});
+      setSelectedPhoto({});
+      setUploaderOpen(false)
       if(totalConversationMessagesRef.current == 0){
         setLoadMessages(true)
       }
     }
-  },[conversationItem.waID]);
+  },[conversationItem?.waID]);
 
   useEffect(()=>{
     if (loadMessages == false) return;
@@ -90,7 +98,7 @@ export const ConversationArea = ({
           phoneID,
           waID: conversationItem.waID,
           limit: 10,
-          index: conversationMessages.length/10,
+          index: Math.floor(conversationMessages.length/10),
         });
       }  
     };
@@ -110,7 +118,6 @@ export const ConversationArea = ({
   useEffect(() => {
     if (allConversationMessages) {
       totalConversationMessagesRef.current = totalConversationMessages;
-      const previousScrollHeight = messagesContainerRef.current.scrollHeight;
       setConversationMessages(prev => {
         const existingMsgIDs = new Set(prev.map(msg => msg.messageObject.id));
         const newUniqueMessages = allConversationMessages.filter(
@@ -118,6 +125,7 @@ export const ConversationArea = ({
         );
         return [...prev, ...newUniqueMessages];
       });
+      const previousScrollHeight = messagesContainerRef.current.scrollHeight;
       requestAnimationFrame(() => {
         const newScrollHeight = messagesContainerRef.current.scrollHeight;
         messagesContainerRef.current.scrollTop = newScrollHeight - previousScrollHeight;
@@ -128,7 +136,7 @@ export const ConversationArea = ({
       toast.error(conversationMessageError);
       setLoadMessages(false);
     }
-  }, [allConversationMessages, conversationMessageError, totalConversationMessages]);
+  }, [allConversationMessages, conversationMessageError]);
 
   
 
@@ -146,16 +154,41 @@ export const ConversationArea = ({
       const newMsg = {
         messageObject: {
           id: sendResponse?.data.messages[0].id,
-          timestamp: "-",
-          text: {
-            body: newMessage,
-          },
-          type: "text"
+          type: sendResponse.type,
         },
-        messageType: "TEXT",
+        messageType: "SEND",
         sentAt: "-",
         status: "unknown"
       };
+      switch (sendResponse.type) {
+        case "text":
+          newMsg.messageObject.text = {
+            body: newMessage,
+          }
+          break;
+        case "image":
+          newMsg.messageObject.image = {
+            caption: newMessage,
+            link: selectedPhoto.link
+          }
+          break;
+        case "video":
+          newMsg.messageObject.video = {
+            caption: newMessage,
+            link: selectedPhoto.link
+          }
+          break;
+        case "document":
+          newMsg.messageObject.video = {
+            caption: newMessage,
+            link: selectedDoc.link,
+            filename: selectedDoc.name
+          }
+          break;
+      
+        default:
+          break;
+      }
       setConversationMessages((prev) => [newMsg, ...prev]);
       setConversationItem((prev) => ({
         ...prev, 
@@ -163,6 +196,9 @@ export const ConversationArea = ({
       }));
       setSend(true)
       setNewMessage("");
+      setSelectedDoc({});
+      setSelectedPhoto({});
+      setUploaderOpen(false)
       setSending(false);
     } else if(sendError){
       toast.error("Sending message failed");
@@ -172,7 +208,6 @@ export const ConversationArea = ({
 
 
   const handleSendMessage = async() => {
-    if (newMessage?.trim() === "") return;
     
     const currentTime = (Math.floor(new Date())/1000).toString();
     if(currentTime >= conversationItem.serviceWindowExpiry){
@@ -190,12 +225,20 @@ export const ConversationArea = ({
     await handleSend({
       phoneID,
       waID: conversationItem.waID,
-      message: newMessage
+      message: newMessage,
+      imageURL: selectedPhoto.link || '',
+      docURL: selectedDoc.link || '',
+      fileName: selectedDoc.name || '',
     })
     
     // setConversationMessages([newMsg, ...conversationMessages]);
     // setNewMessage("");
   
+  };
+  const [uploaderOpen, setUploaderOpen] = useState(false);
+  const handleUpload = (file) => {
+    console.log('Uploading:', file);
+    setUploaderOpen(false);
   };
 
   return (
@@ -229,7 +272,7 @@ export const ConversationArea = ({
         className="flex-1 p-4 overflow-y-auto bg-[#e5ded8] flex flex-col"
         onScroll={(e) => {
           const { scrollTop } = e.currentTarget;
-          if (scrollTop == 0 && conversationMessages?.length < totalConversationMessages){
+          if (scrollTop == 0 && conversationMessages?.length < totalConversationMessagesRef.current){
             setLoadMessages(true);
           }
         }}
@@ -257,7 +300,22 @@ export const ConversationArea = ({
                   : 'bg-white rounded-tl-none'
               }`}
             >
-              <div className="text-sm break-words">{message?.messageObject?.text?.body || "🚫 THIS MESSAGE CAN BE VIEWED IN THE ORIGINAL WHATSAPP APP"}</div>
+              {message?.messageObject?.type === "image" && 
+              <div>
+                {message?.messageObject?.image?.link ?
+                <img className='w-80' src={message?.messageObject?.image?.link} /> : <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=150&h=150&fit=crop" />}
+              </div>}
+              {message?.messageObject?.type === "video" && 
+              <div>
+                {message?.messageObject?.video?.link ?
+                <img className='w-80' src={message?.messageObject?.video?.link} /> : <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=150&h=150&fit=crop" />}
+              </div>}
+              {message?.messageObject?.type === "document" && 
+              <div>
+                {message?.messageObject?.document?.link ?
+                <img className='w-80' src={message?.messageObject?.document?.link} /> : <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=150&h=150&fit=crop" />}
+              </div>}
+              <div className="text-sm break-words">{message?.messageObject?.text?.body || message?.messageObject?.image?.caption || message?.messageObject?.video?.caption || message?.messageObject?.document?.caption}</div>
               <div className="text-right mt-1 flex items-center justify-end">
                 <span className="text-xs text-gray-500 mr-1">{message?.sentAt}</span>
                 {message?.messageType !== 'RECEIVED' && <MessageStatus status={message?.status} />}
@@ -277,7 +335,7 @@ export const ConversationArea = ({
                   : 'bg-white rounded-tl-none'
               }`}
             >
-              <div className="text-sm break-words">{conversationItem.lastMessageBody?.messageObject?.text.body || "🚫 THIS MESSAGE CAN BE VIEWED IN THE ORIGINAL WHATSAPP APP"}</div>
+              <div className="text-sm break-words">{conversationItem.lastMessageBody?.messageObject?.text?.body || "🚫 THIS MESSAGE CAN BE VIEWED IN THE ORIGINAL WHATSAPP APP"}</div>
               <div className="text-right mt-1 flex items-center justify-end">
               </div>
             </div>
@@ -290,6 +348,21 @@ export const ConversationArea = ({
       
       </div>
 
+      {/* Document Uploader */}
+      <DocumentUploader 
+        companyID={companyID}
+        isOpen={uploaderOpen} 
+        onUpload={handleUpload}
+        setSelectedDoc={setSelectedDoc}
+        selectedPhoto={selectedPhoto}
+        setSelectedPhoto={setSelectedPhoto}
+        selectedDoc={selectedDoc}
+        photos={photos}
+        setPhotos={setPhotos}
+        docs={docs}
+        setDocs={setDocs}
+      />
+
       {/* Message input area */}
       <div className="bg-gray-100 p-3 h-16">
         <div className="flex items-center bg-white rounded-full px-4 py-2 h-full">
@@ -297,7 +370,13 @@ export const ConversationArea = ({
             <Smile className="w-6 h-6" />
           </button>
           <button className="text-gray-500 mr-2 flex-shrink-0">
-            <Paperclip className="w-6 h-6" />
+            <Paperclip className="w-6 h-6" onClick={() => {
+              if(uploaderOpen){
+                setSelectedPhoto({});
+                setSelectedDoc({});
+              }
+              setUploaderOpen(!uploaderOpen);
+            }} />
           </button>
           <input
             type="text"
@@ -310,11 +389,11 @@ export const ConversationArea = ({
             }}
           />
           <button 
-            className={`ml-2 p-2 rounded-full flex-shrink-0 ${newMessage.trim() ? 'bg-green-500 text-white' : 'text-gray-500'}`}
+            className={`ml-2 p-2 rounded-full flex-shrink-0 ${newMessage.trim()  || selectedPhoto?.link || selectedDoc?.link ? 'bg-green-500 text-white' : 'text-gray-500'}`}
             onClick={handleSendMessage}
-            disabled={!newMessage.trim()}
+            disabled={(newMessage.trim() == "" && !selectedPhoto?.link && !selectedDoc?.link)}
           >
-            {newMessage.trim() == "" ? <Mic className="w-5 h-5" /> : sending ? <Loader className='w-5 h-5' /> : <Send className="w-5 h-5" />}
+            {(newMessage.trim() == "" && !selectedPhoto?.link && !selectedDoc?.link) ? <Mic className="w-5 h-5" /> : sending ? <Loader className='w-5 h-5' /> : <Send className="w-5 h-5" />}
           </button>
         </div>
       </div>

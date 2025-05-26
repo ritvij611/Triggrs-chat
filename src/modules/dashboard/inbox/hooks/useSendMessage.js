@@ -38,7 +38,16 @@ export const useSendMessage = () => {
             }
 
             const result = await res.json();
-            setSendResponse(result);
+            if(query.imageURL){
+                setSendResponse({...result, type: "image"});
+            } else if(query.videoURL){
+                setSendResponse({...result, type: "video"});
+            } else if(query.docURL){
+                setSendResponse({...result, type: "document"});
+            } else {
+                setSendResponse({...result, type: "text"});
+            }
+            
         } catch (err) {
             if (err.name === 'AbortError') {
                 console.log('Request was aborted.');

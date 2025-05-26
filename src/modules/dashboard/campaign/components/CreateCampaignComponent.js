@@ -67,6 +67,8 @@ export default function CreateCampaignComponent({ companyID }) {
   const [contactsDropdownOpen, setContactsDropdownOpen] = useState(false);
   const [searchTemplate, setSearchTemplate] = useState("");
   const [contactSearch, setContactSearch] = useState("");
+  const [showImageGallery, setShowImageGallery] = useState(false);
+  const [photos, setPhotos] = useState([])
 
   useEffect(() => {
     if(!templates.length)setLoadTemplates(true);
@@ -281,13 +283,15 @@ export default function CreateCampaignComponent({ companyID }) {
               </div>
             </div>
 
-
             {selectedTemplate && (
               <div className="mt-6">
-                <p className="block text-base font-medium text-gray-700 mb-3">Template Preview</p>
-                <div className="p-6 border rounded-lg bg-gray-50">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="block text-base font-medium text-gray-700">Template Preview</p>
+                </div>
+                <div className="border rounded-lg bg-gray-50 w-100">
                   <PreviewPartComponent {...decodeComponents(selectedTemplate)} />
                 </div>
+
               </div>
             )}
           </div>

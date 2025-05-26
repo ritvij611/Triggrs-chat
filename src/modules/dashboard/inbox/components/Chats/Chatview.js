@@ -24,18 +24,20 @@ const decodeMessage = (conversation) => {
     }
   }
 
-  const msg = conversation?.lastMessageBody?.messageObject?.text?.body || '';
+  const msg = conversation?.lastMessageBody?.messageObject?.text?.body || conversation?.lastMessageBody?.messageObject?.image?.caption || conversation?.lastMessageBody?.messageObject?.video?.caption || conversation?.lastMessageBody?.messageObject?.document?.caption || '';
   const message = msg.substring(0, 40) + (msg.length > 40 ? '...':'');
   const messageCount = conversation.unreadMessages || 0;
   const messageType = conversation?.lastMessageBody?.messageType
   const status = conversation?.lastMessageBody?.status
+  const type = conversation?.lastMessageBody?.messageObject?.type
 
-  return { name, waID, time, message, messageCount, messageType, status };
+
+  return { name, waID, time, message, messageCount, messageType, status, type };
 };
 
 
 
-const Chatview = ({phoneID}) => {
+const Chatview = ({phoneID, companyID}) => {
   const { allConversations, totalConversations, loadingConversations, conversationError, fetchConversations, cancelConversationsOperation } = useFetchConversations();
   const { markReadResponse, loadingMark, markingError, markConversationRead, cancelMarkingOperation } = useMarkConversationRead()
   const totalConversationsRef = useRef(0);
@@ -86,10 +88,6 @@ const Chatview = ({phoneID}) => {
       }
     }
   }
-
-  useEffect(() =>{
-    console.log(conversations)
-  },[conversations]);
 
   useEffect(() =>{
     if(markReadResponse.status === 200){
@@ -158,10 +156,7 @@ const Chatview = ({phoneID}) => {
         waID,
         contactName: sender.profile.name,
         contactNumber: waID,
-        lastMessageBody: {
-          messageObject: message,
-          sentAt: message.timestamp,
-        },
+        lastMessageBody: newMessage,
         unreadMessages: isCurrent ? 0 : ((existing?.unreadMessages || 0) + 1),
         serviceWindowExpiry: (Number(message.timestamp) + 86400).toString(),
       };
@@ -180,7 +175,7 @@ const Chatview = ({phoneID}) => {
     if (waID === conversationItem?.waID) {
       setStatusUpdate({
         id: message.id,
-        status: message.status.toUpperCase(),
+        status: message.status,
         timestamp: message.timestamp
       });
     }
@@ -238,7 +233,6 @@ const Chatview = ({phoneID}) => {
 
   useEffect(() => {
     if (allConversations) {
-      console.log(allConversations);
       setConversations(prev => {
         const existingMap = new Map(prev.map(conv => [conv.waID, conv]));
         allConversations.forEach(conv => {
@@ -291,7 +285,7 @@ const Chatview = ({phoneID}) => {
                       .map(conversation => (
                         <ChatUserItem 
                         {...decodeMessage(conversation)}
-                        chatStatus={`${conversation.waID == conversationItem?.waID ? "Active":"Closed"}`}
+                        chatStatus={`${conversation?.serviceWindowExpiry >= ((new Date())/1000).toString() ? "Active":"Closed"}`}
                         onClick={() => handleConversationClick(conversation.waID)} />
                       ))}
             {/* Loading Spinner */}
@@ -313,6 +307,7 @@ const Chatview = ({phoneID}) => {
         newConversationMessage={newConversationMessage} 
         statusUpdate={statusUpdate}
         phoneID={phoneID}
+        companyID={companyID}
         messageMap={messageMap}
         setMessageMap={setMessageMap}
         send={send}
