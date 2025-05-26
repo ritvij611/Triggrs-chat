@@ -7,21 +7,36 @@ export default async function handler(req, res) {
     }
 
     const environment = EnvironmentFactory.getEnvironment(process.env.STAGE);
-    const {phoneID, waID, message} = req.body;
+    const {phoneID, waID, message, imageURL, docURL, fileName} = req.body;
+    const content = {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: waID,
+        type: imageURL ? "image" : docURL ? "document" : 'text',
+    }
+
+    if(imageURL){
+        content.image = {
+            link: imageURL,
+            caption: message,
+        }
+    } else if(docURL){
+        content.document = {
+            link: imageURL,
+            caption: message,
+            filename: fileName,
+        }
+    } else {
+        content.text = {
+            preview_url: false,
+            body: message
+        }
+    }
     try {
         const response = await axios.post(
             `${environment?.config?.wa?.apiUrl}/message/${phoneID}`,
             {                
-                content: {
-                    messaging_product: "whatsapp",
-                    recipient_type: "individual",
-                    to: waID,
-                    type: 'text',
-                    text: {
-                        preview_url: false,
-                        body: message
-                    }
-                }                
+                content               
             }
         );
         

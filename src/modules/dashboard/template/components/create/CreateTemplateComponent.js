@@ -62,7 +62,6 @@ const TemplateCreate = ({companyID}) => {
   const [currentLanguageLabel, setCurrentLanguageLabel] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [templateCategory, setTemplateCategory] = useState('');
-  const [isLoadingTempCreate, setIsLoadingTempCreate] = useState(false);
   const router = useRouter();
   // for Create Template or edit template step Divide
   const [selectedHeader, setSelectedHeader] = useState('');

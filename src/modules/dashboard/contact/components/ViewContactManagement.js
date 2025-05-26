@@ -139,7 +139,7 @@ export default function ViewContactManagement({companyID}) {
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [country, setCountry] = useState({});
+  const [country, setCountry] = useState({country: 'India', code: 91});
   const [phoneNumber, setPhoneNumber] = useState("");
   const [optedIn, setOptedIn] = useState(false);
   const [customProperties, setCustomProperties] = useState([{ key: "", value: "" }]);
@@ -175,7 +175,7 @@ export default function ViewContactManagement({companyID}) {
     setLastName('');
     setPhoneNumber('');
     setCustomProperties([{ key: "", value: "" }]);
-    setCountry({});
+    setCountry({country: 'India', code: 91});
     setOptedIn(false);
   }
 
@@ -194,7 +194,7 @@ export default function ViewContactManagement({companyID}) {
     setLastName('');
     setPhoneNumber('');
     setCustomProperties([{ key: "", value: "" }]);
-    setCountry({});
+    setCountry({country: 'India', code: 91});
     setOptedIn(false);
   }
   
