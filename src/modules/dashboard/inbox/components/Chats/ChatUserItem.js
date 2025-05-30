@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types'
-import { Clock, Check } from 'lucide-react';
+import { Clock, Check, Camera, Video, File } from 'lucide-react';
 
 const MessageStatus = ({ status }) => {
   if (status === "SENT") {
@@ -23,7 +23,7 @@ const MessageStatus = ({ status }) => {
   }
 };
 
-export default function ChatUserItem({time="20:59", name="Tw", message='dofijhpjpo', messageCount=2, onClick=()=>{}, onMenuClick=()=>{}, chatStatus="Active", status, messageType}) {
+export default function ChatUserItem({time="20:59", name="Tw", message='dofijhpjpo', messageCount=2, onClick=()=>{}, onMenuClick=()=>{}, chatStatus="Active", status, messageType, type}) {
   return (
         <div onContextMenu={onMenuClick} className="flex flex-nowrap items-center px-3 w-full font-inter border-gray-200 h-[72px] border-b group hover:bg-green-400/10">
             {/* <Image alt="team" className="w-10 h-10 object-cover object-center flex-shrink-0 rounded-full mr-3" src="/images/dummy-image.png" width={100} height={100} /> */}
@@ -35,6 +35,7 @@ export default function ChatUserItem({time="20:59", name="Tw", message='dofijhpj
                 </h3>
                 <div className='flex'>
                 {messageType != "RECEIVED" && <MessageStatus status={status}/>}
+                {type==="image" ? <Camera className="text-gray-400 w-5 h-5 mx-1" /> : type==="video" ? <Video className="text-gray-400 w-5 h-5 mx-1" /> : type==="document" ? <File className="text-gray-400 w-5 h-5 mx-1" /> : ''}
                 <span className="block text-xs  text-gray-600 truncate w-[95%]">{message}</span>
                 </div>
             </div>
