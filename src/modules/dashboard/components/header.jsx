@@ -186,8 +186,8 @@ export default function DashboardHeader({loginData}) {
 
   return (
     <>
-      <header className='font-inter border-b py-0.5 bg-white border-b-gray-200 sticky top-0 z-50'>
-        <div className='flex justify-between items-center px-5'>
+      <header className='border-b py-0.5 bg-white border-b-gray-200 sticky top-0 z-50'>
+        <div className='flex justify-between mx-auto max-w-7xl items-center px-5'>
           <div className='w-full'><CompanyLogo className='size-[50px]' /></div>
         <ul className='w-full flex items-center gap-x-2 text-sm'>
             <li className='hover:text-emerald-700 hover:bg-emerald-700/10 px-2 py-1.5 rounded-md'><Link href="/dashboard">Dashboard</Link></li>

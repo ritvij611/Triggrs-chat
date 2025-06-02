@@ -322,11 +322,8 @@ const Chatview = ({phoneID, companyID}) => {
       }
       </div>
     </>
-
   )
-
 }
-
 
 
 export default Chatview;

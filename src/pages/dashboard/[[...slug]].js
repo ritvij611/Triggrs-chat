@@ -75,7 +75,7 @@ export default function DashboardPages(props) {
   if(!isHydrated) return;
 
   return (
-    <div className='bg-slate-50 min-h-screen'>
+    <div className='bg-slate-50 font-outfit min-h-screen'>
         <DashboardHeader loginData={props} />
         {
             router.query.slug?.[0] == 'inbox'
