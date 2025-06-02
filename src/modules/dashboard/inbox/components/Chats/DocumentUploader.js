@@ -109,7 +109,7 @@ export const DocumentUploader = ({companyID, isOpen, onClose, setSelectedPhoto, 
       const allowedFileTypes = ['image/jpeg', 'image/jpg', 'image/png', 'video/mp4', 'application/pdf'];
 
       if (!file) {
-        toast.error(`Please select a ${mediaValue} file.`);
+        toast.error(`Please select an image.`);
         return;
       }
 
