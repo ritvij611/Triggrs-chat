@@ -2,6 +2,7 @@ import { use, useEffect, useId, useMemo, useRef, useState } from "react"
 import { useFetchTemplates } from "@/modules/dashboard/template/hooks/useFetchTemplates";
 import { useDeleteTemplate } from "@/modules/dashboard/template/hooks/useDeleteTemplate";
 import PreviewPartComponent from "./PreviewPartComponent";
+import { TemplateLanguages } from "@/components/general/templatelanguage";
 import {
   flexRender,
   getCoreRowModel,
@@ -144,6 +145,10 @@ export default function TemplateComponent({companyID}) {
       desc: false,
     },
   ]);
+  const getLanguageLabel = (value) => {
+    const match = TemplateLanguages.find(lang => lang.value === value);
+    return match ? match.label : 'Unknown';
+  }
 
   useEffect(() => {
     const fetch = async () => {
@@ -289,7 +294,10 @@ export default function TemplateComponent({companyID}) {
   },
   {
     header: "Language",
-    accessorKey: "language"
+    accessorKey: "language",
+    cell: ({ row }) => (
+      <div className="font-medium">{getLanguageLabel(row?.getValue("language"))}</div>
+    )
   },
   {
     header: "Status",

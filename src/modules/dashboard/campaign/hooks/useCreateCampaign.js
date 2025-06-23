@@ -13,7 +13,7 @@ export const useCreateCampaign = () => {
         if (controllerRef.current) {
         controllerRef.current.abort();
         }
-
+        console.log("query: ", query);
         const controller = new AbortController();
         controllerRef.current = controller;
 

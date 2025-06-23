@@ -79,13 +79,13 @@ export default function DashboardPages(props) {
         <DashboardHeader loginData={props} />
         {
             router.query.slug?.[0] == 'inbox'
-            ? <InboxDashboardComponent companyID={'6805ce5c8ceaf44cf44a9718'} messages={messages} />
+            ? <InboxDashboardComponent companyID={'6804ded6bfe35d908ea0d489'} messages={messages} />
             : router.query.slug?.[0] == 'templates'
-            ? <TemplateManagementComponent companyID={'6805ce5c8ceaf44cf44a9718'} messages={messages}  />
+            ? <TemplateManagementComponent companyID={'6804ded6bfe35d908ea0d489'} messages={messages}  />
             : router.query.slug?.[0] == 'contacts'
-            ? <ContactManagementComponent companyID={'6805ce5c8ceaf44cf44a9718'} messages={messages} />
+            ? <ContactManagementComponent companyID={'6804ded6bfe35d908ea0d489'} messages={messages} />
             : router.query?.slug?.[0] == 'campaigns'
-            ? <CampaignManagementComponent companyID={'6805ce5c8ceaf44cf44a9718'} messages={messages} />
+            ? <CampaignManagementComponent companyID={'6804ded6bfe35d908ea0d489'} messages={messages} />
             : router.query.slug?.[0] == 'agents'
             ? <AgentManagementComponent />
             : <MainDashboardComponent />

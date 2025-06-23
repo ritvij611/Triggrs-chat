@@ -450,7 +450,6 @@ const TemplateCreate = ({companyID}) => {
         companyID,
         name: templateName,
         language: currentLanguage,
-        label: currentLanguageLabel,
         category: templateCategory,
         components
       });
@@ -459,21 +458,6 @@ const TemplateCreate = ({companyID}) => {
     } 
     
   };
-      //  else if(response.status === 'REJECTED') {
-      //   setIsLoadingTempCreate(false)
-      //   let category = response.category;
-      //   let id = response.id
-      //   let status = response.status
-      //   errFormRef.current.innerHTML = '';
-      //   templateNameRef.current.value = ''
-      //   setTemplateCategory('')
-      //   setCurrentLanguage('')
-      //   setSelectedHeader('')
-      //   setHeaderCurrentText('')
-      //   setBodyCurrentText('')
-      //   setFooterPart('')
-      //   // console.log(response)
-      // }
 
   // for add multiple variable 
   const handleBodyVariableInputChange = (variableName, index, e) => {
@@ -768,7 +752,7 @@ const TemplateCreate = ({companyID}) => {
                           onChange={(e) => handleBodyVariableInputChange(variableItem.key, index, e)}
                           autoComplete="off"
                           type="text"
-                          minLength="3"
+                          minLength="2"
                           maxLength="60"
                           className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-emerald-600 focus:border-emerald-600 focus:outline-none block w-full p-2.5"
                           placeholder={`Enter Value for Variable ${index + 1}`}

@@ -11,25 +11,59 @@ import { markRead } from '@/store/webSocketSlice';
 import { useMarkConversationRead } from '../../hooks/useMarkConversationRead';
 import { toast } from 'sonner';
 
+// Function to replace variables in text with their values
+const replaceVariables = (text, variableValues) => {
+  if (!text || !variableValues) return text;
+    
+  let replacedText = text;
+  variableValues.forEach((variable, index)=> {
+    if (variable) {
+      // Replace variables in format {{1}}
+      const regex1 = new RegExp(`\\{\\{${index + 1}\\}\\}`, 'g');
+      replacedText = replacedText.replace(regex1, variable);
+    }
+  });
+    return replacedText;
+  };
+
 const decodeMessage = (conversation) => {
   const name = conversation.contactName || '';
   const waID = conversation.waID || '';
-
+  const messageBody = conversation?.lastMessageBody;
   let time = '-';
-  const timestamp = conversation?.lastMessageBody?.sentAt;
+  const timestamp = messageBody?.sentAt;
   if (timestamp) {
     const date = new Date(Number(timestamp)*1000);
     if (!isNaN(date.getTime())) {
       time = date.toISOString();
     }
   }
+  let msg = messageBody?.messageObject?.text?.body || messageBody?.messageObject?.image?.caption || messageBody?.messageObject?.video?.caption || messageBody?.messageObject?.document?.caption || '';
+  let type = messageBody?.messageObject?.type;
+  if (messageBody?.messageObject?.type === "template") {
+    const template = messageBody.messageObject.template;
 
-  const msg = conversation?.lastMessageBody?.messageObject?.text?.body || conversation?.lastMessageBody?.messageObject?.image?.caption || conversation?.lastMessageBody?.messageObject?.video?.caption || conversation?.lastMessageBody?.messageObject?.document?.caption || '';
+    const headerObj = template.body.find(item => item.type === "HEADER");
+    const bodyObj = template.body.find(item => item.type === "BODY");
+    type = headerObj?.format.toLowerCase();
+    const headerParams = template.parameters.find(p => p.type === "header")?.parameters || [];
+    const bodyParams = template.parameters.find(p => p.type === "body")?.parameters || [];
+
+    const headerTextVars = headerParams.map(p => p.text);
+    const bodyTextVars = bodyParams.map(p => p.text);
+
+    if (headerObj?.format === "TEXT" && headerObj.text) {
+      msg += replaceVariables(headerObj.text, headerTextVars) + "\n";
+    }
+
+    if (bodyObj?.text) {
+      msg += replaceVariables(bodyObj.text, bodyTextVars);
+    }
+  }
   const message = msg.substring(0, 40) + (msg.length > 40 ? '...':'');
   const messageCount = conversation.unreadMessages || 0;
-  const messageType = conversation?.lastMessageBody?.messageType
-  const status = conversation?.lastMessageBody?.status
-  const type = conversation?.lastMessageBody?.messageObject?.type
+  const messageType = messageBody?.messageType
+  const status = messageBody?.status
 
 
   return { name, waID, time, message, messageCount, messageType, status, type };
@@ -150,6 +184,9 @@ const Chatview = ({phoneID, companyID}) => {
     setConversations((prev) => {
       const existing = prev.find(item => item.waID === waID);
       const isCurrent = conversationItem?.waID === waID;
+      if(isCurrent){
+        setConversationItem(prev => ({...prev, serviceWindowExpiry: (Number(message.timestamp) + 86400).toString()}))
+      }
 
       const updatedItem = {
         ...existing,

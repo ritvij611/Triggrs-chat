@@ -4,6 +4,75 @@ import { useFetchConversationMessages } from '../../hooks/useFetchConversationMe
 import { toast } from 'sonner';
 import { useSendMessage } from '../../hooks/useSendMessage';
 import { DocumentUploader } from './DocumentUploader';
+import PreviewPartComponent from '@/modules/dashboard/template/components/PreviewPartComponent';
+
+const decodeComponents = (components = [], parameters = []) => {
+  const headerObj = components.find(item => item.type === "HEADER");
+  const bodyObj = components.find(item => item.type === "BODY");
+  const footerObj = components.find(item => item.type === "FOOTER");
+  const buttonsObj = components.find(item => item.type === "BUTTONS");
+
+  const headerType = headerObj?.format === "TEXT" ? "Text" : "Media";
+
+  const mediaType = (() => {
+    switch (headerObj?.format) {
+      case "IMAGE": return "Image";
+      case "VIDEO": return "Video";
+      case "DOCUMENT": return "Document";
+      case "LOCATION": return "Location";
+      default: return "";
+    }
+  })();
+
+  const headerPart = headerObj?.text || "";
+  const bodyPart = bodyObj?.text || "";
+  const footerPart = footerObj?.text || "";
+
+  const headerParams = parameters.find(p => p.type === "header")?.parameters || [];
+  const bodyParams = parameters.find(p => p.type === "body")?.parameters || [];
+
+  const headerVariableValues = headerParams.map(param => param.text);
+  const bodyVariableValues = bodyParams.map(param => param.text);
+
+  const buttons = buttonsObj?.buttons || [];
+  const ctaItems = [];
+  const replyItems = [];
+
+  buttons.forEach(item => {
+    if (item.type === "PHONE_NUMBER") {
+      ctaItems.push({
+        ctaType: 'PHONE',
+        label: item.text
+      });
+    } else if (item.type === "URL") {
+      ctaItems.push({
+        ctaType: 'URL',
+        label: item.text
+      });
+    } else {
+      replyItems.push(item.text);
+    }
+  });
+
+  const imageUploaded = headerObj?.format !== "TEXT";
+  const headerHandle = headerParams?.[0]?.image?.link || "";
+  console.log(headerParams)
+  
+  return {
+    imageUploaded,
+    headerHandle,
+    headerType,
+    mediaType,
+    headerPart,
+    bodyPart,
+    footerPart,
+    ctaItems,
+    replyItems,
+    bodyVariableValues,
+    headerVariableValues
+  };
+};
+
 
 const MessageStatus = ({ status }) => {
   if (status === "SENT") {
@@ -300,7 +369,11 @@ export const ConversationArea = ({
                   : 'bg-white rounded-tl-none'
               }`}
             >
-              {message?.messageObject?.type === "image" && 
+
+              {message?.messageObject?.type === "template" ? 
+              (<PreviewPartComponent putValue={true} {...decodeComponents(message?.messageObject?.template?.body, message?.messageObject?.template?.parameters)} />)
+              :
+              (<div>{message?.messageObject?.type === "image" && 
               <div>
                 {message?.messageObject?.image?.link ?
                 <img className='w-80' src={message?.messageObject?.image?.link} /> : <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=150&h=150&fit=crop" />}
@@ -316,6 +389,7 @@ export const ConversationArea = ({
                 <img className='w-80' src={message?.messageObject?.document?.link} /> : <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=150&h=150&fit=crop" />}
               </div>}
               <div className="text-sm break-words">{message?.messageObject?.text?.body || message?.messageObject?.image?.caption || message?.messageObject?.video?.caption || message?.messageObject?.document?.caption}</div>
+              </div>)}
               <div className="text-right mt-1 flex items-center justify-end">
                 <span className="text-xs text-gray-500 mr-1">{message?.sentAt}</span>
                 {message?.messageType !== 'RECEIVED' && <MessageStatus status={message?.status} />}

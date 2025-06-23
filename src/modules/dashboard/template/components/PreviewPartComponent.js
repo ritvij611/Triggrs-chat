@@ -1,9 +1,8 @@
 import Image from 'next/image';
 import PropTypes from 'prop-types';
 
-export default function PreviewPartComponent({imageUploaded = false, headerType, mediaType, headerPart, bodyPart, footerPart, ctaItems, replyItems, bodyVariableValues, headerVariableValues, headerHandle }) {
-  // const [bodyState, setBodyState] = useState();
-  // console.log(`media type- ${mediaType}`)
+export default function PreviewPartComponent({imageUploaded = false, headerType, mediaType, headerPart, bodyPart, footerPart, ctaItems, replyItems, bodyVariableValues, headerVariableValues, headerHandle, putValue = false }) {
+  
   const formatTextAccordingly = (inputSentence) => {
     // Define the input text.
     // const inputSentence = "This is a *sample* sentence with *words* in asterisks.";
@@ -16,13 +15,37 @@ export default function PreviewPartComponent({imageUploaded = false, headerType,
     return replacedSentence3;
   };
 
-  // useEffect(() => {
-  //   if(bodyPart){
-  //     formatTextAccordingly(bodyPart);
-  //   }else{
-  //     setBodyState(bodyPart);
-  //   }
-  // }, [bodyPart]);
+  // Function to replace variables in text with their values
+  const replaceVariables = (text, variableValues) => {
+    if (!text || !putValue || !variableValues) return text;
+    
+    let replacedText = text;
+    variableValues.forEach((variable, index)=> {
+      if (variable) {
+        // Replace variables in format {{1}}
+        const regex1 = new RegExp(`\\{\\{${index + 1}\\}\\}`, 'g');
+        replacedText = replacedText.replace(regex1, variable);
+      }
+    });
+    return replacedText;
+  };
+
+
+  // Process text with variable replacement and formatting
+  const processText = (text, variableValues) => {
+    const textWithVariables = replaceVariables(text, variableValues);
+    return formatTextAccordingly(textWithVariables);
+  };
+
+  // Process header text
+  const processedHeaderPart = putValue ? replaceVariables(headerPart, headerVariableValues) : headerPart;
+  
+  // Process body text  
+  const processedBodyPart = processText(bodyPart, bodyVariableValues);
+  
+  // Process footer text
+  const processedFooterPart = footerPart;
+
   return (
     <div className='w-full min-w-90 px-4 sticky top-[70px] py-2 bg-gray-100 rounded-lg'>
           {/* <h3 className='font-semibold text-lg mb-2'>Preview</h3> */}
@@ -37,7 +60,7 @@ export default function PreviewPartComponent({imageUploaded = false, headerType,
         <div className='bg-white shadow-sm mb-1 border border-gray-300 text-sm p-2 rounded-lg'>
           {
               headerType == 'Text'
-              ? <h2 className='font-semibold text-base mb-2'>{headerPart}</h2>
+              ? <h2 className='font-semibold text-base mb-2'>{processedHeaderPart}</h2>
               : headerType == 'Media'
               ? <div className='w-full border border-gray-100 mb-3 bg-gray-200 rounded-xl'>
                   {
@@ -56,11 +79,11 @@ export default function PreviewPartComponent({imageUploaded = false, headerType,
               </div>
               : <></>
           }
-          <div dangerouslySetInnerHTML={{__html: formatTextAccordingly(bodyPart)}}/>
+          <div dangerouslySetInnerHTML={{__html: processedBodyPart}}/>
           {
           footerPart == ''  || footerPart == null
           ? <></>
-          : <p className='text-xs text-gray-800 mt-2 font-normal'>{footerPart}</p>
+          : <p className='text-xs text-gray-800 mt-2 font-normal'>{processedFooterPart}</p>
           }
         </div>
         {
@@ -102,7 +125,9 @@ PreviewPartComponent.propTypes = {
     replyItems: PropTypes.array,
     bodyVariableValues: PropTypes.array,
     headerVariableValues: PropTypes.array,
-    headerHandle: PropTypes.array
+    headerHandle: PropTypes.array,
+    imageUploaded: PropTypes.bool,
+    putValue: PropTypes.bool
 };
 
 PreviewPartComponent.defaultProps = {
@@ -120,5 +145,7 @@ PreviewPartComponent.defaultProps = {
     replyItems: [],
     bodyVariableValues: [{key: '', value: ''}],
     headerVariableValues: [{key: '', value: ''}],
-    headerHandle: ['']
+    headerHandle: [''],
+    imageUploaded: false,
+    putValue: false
 }

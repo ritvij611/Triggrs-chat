@@ -16,7 +16,8 @@ import { useRouter } from "next/router";
 import { useFetchUploadedFiles } from "../../inbox/hooks/useFetchUploadedFiles";
 import { useFileUpload } from "../../inbox/hooks/useFileUpload";
 
-const decodeComponents = (template) => {
+const decodeComponents = (template, bodyVars = [], headerVars = []) => {
+  
   const components = template.components;
   const headerObj = components?.find((item) => item.type === "HEADER");
   const bodyObj = components?.find((item) => item.type === "BODY");
@@ -28,8 +29,8 @@ const decodeComponents = (template) => {
   const bodyPart = bodyObj?.text || "";
   const footerPart = footerObj?.text || "";
   const buttons = buttonsObj?.buttons || [];
-  const bodyVariableValues = bodyObj?.example?.body_text || [];
-  const headerVariableValues = headerObj?.example?.header_text || [];
+  const bodyVariableValues = bodyVars.length ? bodyVars.map(variable => (variable.value)) : bodyObj?.example?.body_text?.[0] || [];
+  const headerVariableValues = headerVars.length ? headerVars.map(variable => (variable.value)) : headerObj?.example?.header_text || [];
   let ctaItems = [];
   let replyItems = [];
   buttons.forEach(item => {
@@ -48,8 +49,154 @@ const decodeComponents = (template) => {
     }
   });
 
-  return { headerType, mediaType, headerPart, bodyPart, footerPart, ctaItems, replyItems, bodyVariableValues, headerVariableValues }
+  return { headerType, mediaType, headerPart, bodyPart, footerPart, ctaItems, replyItems, bodyVariableValues, headerVariableValues}
 }
+
+// Function to generate template components based on variables and media
+const generateTemplateComponents = (selectedTemplate, headerVariables, bodyVariables, selectedPhoto) => {
+  if (!selectedTemplate) return [];
+
+  const decoded = decodeComponents(selectedTemplate);
+  const components = [];
+
+  // Generate header component
+  if (decoded.headerType === "Media" && decoded.mediaType) {
+    const headerComponent = {
+      type: "header",
+      parameters: []
+    };
+
+    if (decoded.mediaType === "Image" && selectedPhoto?.link) {
+      headerComponent.parameters.push({
+        type: "image",
+        image: {
+          link: selectedPhoto.link
+        }
+      });
+    } else if (decoded.mediaType === "Video" && selectedPhoto?.link) {
+      headerComponent.parameters.push({
+        type: "video",
+        video: {
+          link: selectedPhoto.link
+        }
+      });
+    } else if (decoded.mediaType === "Document" && selectedPhoto?.link) {
+      headerComponent.parameters.push({
+        type: "document",
+        document: {
+          link: selectedPhoto.link
+        }
+      });
+    }
+
+    // Add header text variables if any
+    headerVariables.forEach(variable => {
+      if (variable.type === 'contact_name') {
+        headerComponent.parameters.push({
+          type: "text",
+          text: "PUTCONTACTNAME"
+        });
+      } else if (variable.type === 'contact_number') {
+        headerComponent.parameters.push({
+          type: "text",
+          text: "PUTCONTACTNUMBER"
+        });
+      } else if (variable.type === 'contact_country') {
+        headerComponent.parameters.push({
+          type: "text",
+          text: "PUTCOUNTRYNAME"
+        });
+      } else if (variable.type === 'text' && variable.value.trim()) {
+        headerComponent.parameters.push({
+          type: "text",
+          text: variable.value
+        });
+      }
+    });
+
+    if (headerComponent.parameters.length > 0) {
+      components.push(headerComponent);
+    }
+  } else if (decoded.headerType === "Text" && headerVariables.length > 0) {
+    // Handle text-only header with variables
+    const headerComponent = {
+      type: "header",
+      parameters: []
+    };
+
+    headerVariables.forEach(variable => {
+      if (variable.type === 'contact_name') {
+        headerComponent.parameters.push({
+          type: "text",
+          text: "PUTCONTACTNAME"
+        });
+      } else if (variable.type === 'contact_number') {
+        headerComponent.parameters.push({
+          type: "text",
+          text: "PUTCONTACTNUMBER"
+        });
+      } else if (variable.type === 'contact_country') {
+        headerComponent.parameters.push({
+          type: "text",
+          text: "PUTCOUNTRYNAME"
+        });
+      } else if (variable.type === 'text' && variable.value.trim()) {
+        headerComponent.parameters.push({
+          type: "text",
+          text: variable.value
+        });
+      }
+    });
+
+    if (headerComponent.parameters.length > 0) {
+      components.push(headerComponent);
+    }
+  }
+
+  // Generate body component
+  if (bodyVariables.length > 0) {
+    const bodyComponent = {
+      type: "body",
+      parameters: []
+    };
+
+    bodyVariables.forEach(variable => {
+      if (variable.type === 'contact_name') {
+        bodyComponent.parameters.push({
+          type: "text",
+          text: "PUTCONTACTNAME"
+        });
+      } else if (variable.type === 'contact_number') {
+        bodyComponent.parameters.push({
+          type: "text",
+          text: "PUTCONTACTNUMBER"
+        });
+      } else if (variable.type === 'contact_country') {
+        bodyComponent.parameters.push({
+          type: "text",
+          text: "PUTCOUNTRYNAME"
+        });
+      } else if (variable.type === 'text' && variable.value.trim()) {
+        bodyComponent.parameters.push({
+          type: "text",
+          text: variable.value
+        });
+      }
+    });
+
+    if (bodyComponent.parameters.length > 0) {
+      components.push(bodyComponent);
+    }
+  }
+
+  return {
+      name: selectedTemplate.templateName,
+      language: {
+        code: selectedTemplate.language
+      },
+      components
+    };
+};
 
 export default function CreateCampaignComponent({ companyID }) {
   const router = useRouter();
@@ -91,7 +238,7 @@ export default function CreateCampaignComponent({ companyID }) {
   useEffect(() => {
     if (createResponse?.status === 200) {
       toast.success(`Campaign added successfully`);
-      router.push("/dashboard/campaigns");
+      // router.push("/dashboard/campaigns");
     } else if (createError) {
       toast.error(createError);
     }
@@ -363,16 +510,38 @@ export default function CreateCampaignComponent({ companyID }) {
   };
 
   const handleSubmit = async () => {
+    const components = generateTemplateComponents(
+      selectedTemplate, 
+      headerVariables, 
+      bodyVariables, 
+      selectedPhoto
+    );
+
+    // Create the complete template structure
+    const templateData = {
+      template: {
+        name: selectedTemplate.templateName,
+        language: {
+          code: selectedTemplate.language || "en"
+        },
+        components: components
+      }
+    };
+
+    console.log("Generated Template:", JSON.stringify(templateData, null, 2));
+
     await handleCreate({
       companyID,
       campaignName,
-      templateID: selectedTemplate.templateID,
+      template: generateTemplateComponents(
+        selectedTemplate, 
+        headerVariables, 
+        bodyVariables, 
+        selectedPhoto
+      ),
       contacts: selectedContacts,
-      selectedImage,
-      headerVariables,
-      bodyVariables
     });
-  }
+  };
 
   const nextStep = () => {
     if (currentStep < steps.length) {
@@ -387,6 +556,8 @@ export default function CreateCampaignComponent({ companyID }) {
   };
 
   const renderStepContent = () => {
+    let decoded = selectedTemplate ? decodeComponents(selectedTemplate) : {};
+    let needsImage = decoded.mediaType === "Image";
     switch (currentStep) {
       case 1:
         return (
@@ -498,8 +669,7 @@ export default function CreateCampaignComponent({ companyID }) {
         );
 
       case 2:
-        const decoded = selectedTemplate ? decodeComponents(selectedTemplate) : {};
-        let needsImage = decoded.mediaType === "Image";
+        
         const hasVariables = headerVariables.length > 0 || bodyVariables.length > 0;
         
         return (
@@ -509,15 +679,15 @@ export default function CreateCampaignComponent({ companyID }) {
             {needsImage && (
               <div>
                 <p className="block text-base font-medium text-gray-700">Select Image</p>
-              <div className="p-4 border-1 rounded-lg"
-            onScroll={(e) => {
-            const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-            if (scrollHeight - scrollTop <= clientHeight + 10 && photos.length < totalPhotosRef.current) {
-              // User has scrolled to the bottom (or near)
-              setLoadPhotos(true);
-            }
-          }}
-          >
+                <div className="p-4 border-1 rounded-lg"
+                  onScroll={(e) => {
+                  const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+                  if (scrollHeight - scrollTop <= clientHeight + 10 && photos.length < totalPhotosRef.current) {
+                    // User has scrolled to the bottom (or near)
+                    setLoadPhotos(true);
+                  }
+                }}
+                >
             <div className="grid grid-cols-8 gap-2">
               {/* Upload new photo option */}
               <div
@@ -734,7 +904,7 @@ export default function CreateCampaignComponent({ companyID }) {
                   <p className="block text-base font-medium text-gray-700">Updated Preview</p>
                 </div>
                 <div className="border rounded-lg bg-gray-50 w-100">
-                  <PreviewPartComponent imageUploaded={needsImage} headerHandle={selectedPhoto.link} {...decodeComponents(selectedTemplate)} />
+                  <PreviewPartComponent imageUploaded={needsImage} headerHandle={selectedPhoto.link} putValue={true} {...decodeComponents(selectedTemplate, bodyVariables, headerVariables)} />
                 </div>
               </div>
             )}
@@ -885,6 +1055,7 @@ export default function CreateCampaignComponent({ companyID }) {
         );
 
       case 4:
+        decoded = selectedTemplate ? decodeComponents(selectedTemplate) : {};
         needsImage = decoded.mediaType === "Image";
         return (
           <div className="space-y-6">
@@ -946,7 +1117,7 @@ export default function CreateCampaignComponent({ companyID }) {
               <div>
                 <p className="font-medium text-base mb-2">Message Preview:</p>
                 <div className="border rounded-lg w-100">
-                  {selectedTemplate ? <PreviewPartComponent imageUploaded={needsImage} headerHandle={selectedPhoto.link} {...decodeComponents(selectedTemplate)} /> : "No template selected"}
+                  {selectedTemplate ? <PreviewPartComponent putValue={true} imageUploaded={needsImage} headerHandle={selectedPhoto.link} {...decodeComponents(selectedTemplate, bodyVariables, headerVariables)} /> : "No template selected"}
                 </div>
               </div>
 
