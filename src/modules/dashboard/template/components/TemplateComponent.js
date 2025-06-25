@@ -397,7 +397,6 @@ export default function TemplateComponent({companyID}) {
               <div className="p-3">
               <AlertDialogTitle className='pb-2'>Template Preview</AlertDialogTitle>
                 <PreviewPartComponent 
-                  components
                   {...decodeComponents(row?.getValue("components"))}
                   />
                   </div>

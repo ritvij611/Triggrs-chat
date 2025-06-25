@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow,} from "@/components/ui/table"
 import { useRouter } from "next/router";
 import { toast } from "sonner";
-import { all } from "axios";
+import CampaignStats from "./campaignStats";
 
 
 // Custom filter function for multi-column searching
@@ -131,29 +131,6 @@ export default function ViewCampaignComponent({companyID}) {
   },[deleteResponse,deleteError]);
 
   const columns = [
-  // {
-  //   id: "select",
-  //   header: ({ table }) => (
-  //     <Checkbox
-  //       checked={
-  //         table.getIsAllPageRowsSelected() ||
-  //         (table.getIsSomePageRowsSelected() && "indeterminate")
-  //       }
-  //       className={'border border-gray-400'}
-  //       onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-  //       aria-label="Select all" />
-  //   ),
-  //   cell: ({ row }) => (
-  //     <Checkbox
-  //       checked={row.getIsSelected()}
-  //       onCheckedChange={(value) => row.toggleSelected(!!value)}
-  //       className={'border border-gray-400'}
-  //       aria-label="Select row" />
-  //   ),
-  //   size: 28,
-  //   enableSorting: false,
-  //   enableHiding: false,
-  // },
   {
     header: "Campaign Name",
     accessorKey: "campaignName",
@@ -174,13 +151,43 @@ export default function ViewCampaignComponent({companyID}) {
     filterFn: multiColumnFilterFn,
     enableHiding: false,
   },
-  {
-    header: "Campaign ID",
-    accessorKey: "groupID",
-    cell: ({ row }) => (
-      <div className="font-medium">{row.original.groupID}</div>
-    ),
+  // {
+  //   header: "Campaign ID",
+  //   accessorKey: "groupID",
+  //   cell: ({ row }) => (
+  //     <div className="font-medium">{row.original.groupID}</div>
+  //   ),
     
+  // },
+  {
+    header: "Statistics",
+    accessorKey: "statistics",
+    cell: ({ row }) => (
+      <AlertDialog>
+        <AlertDialogTrigger>
+          <button className="ml-auto flex items-center gap-1">
+            View Stats
+          </button>
+        </AlertDialogTrigger>
+        <AlertDialogContent className="sm:max-w-md w-full">
+          <div className="flex flex-col gap-1 max-sm:items-center sm:flex-row sm:gap-1">
+              <div className="p-3">
+              <AlertDialogTitle className='pb-2'>Campaign Statistics</AlertDialogTitle>
+                <CampaignStats 
+                  pending={row.original.pendingCount}
+                  sent={row.original.sentCount}
+                  delivered={row.original.deliveredCount}
+                  read={row.original.readCount}
+                  failed={row.original.failedCount}
+                />
+                  </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Close</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    ),
   },
   {
     header: "Number of contacts",
