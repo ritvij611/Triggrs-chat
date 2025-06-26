@@ -87,9 +87,9 @@ This platform enables businesses to manage customer communications through a uni
    Create a `.env.local` file with your configuration:
    ```env
    SESS_SECRET_TOKEN=your_auth_secret
-   NEXT_PUBLIC_FB_APP_ID=your_meta_business_app_id
-   NEXT_PUBLIC_FB_APP_SECRET=your_meta_business_app_secret
-   NEXT_PUBLIC_FB_CONFIG_ID=your_meta_business_app_config_id
+   NEXT_PUBLIC_FB_APP_ID=your_meta_verified_business_app_id
+   NEXT_PUBLIC_FB_APP_SECRET=your_meta_verified_business_app_secret
+   NEXT_PUBLIC_FB_CONFIG_ID=your_meta_verified_business_app_config_id
    STAGE=production_stage_of_product
    ```
 
@@ -142,10 +142,13 @@ This platform enables businesses to manage customer communications through a uni
 ## 📱 User Interface
 
 The platform features a clean, intuitive interface with:
-- **Responsive Design**: Works seamlessly on desktop and mobile devices
-- **Dark/Light Mode**: Customizable theme preferences
+- **Desktop-Optimized Design**: Currently tailored for desktop use only (not responsive)
+- **Familiar Inbox UI**: The inbox interface closely resembles the WhatsApp layout for familiarity and ease of use
 - **Accessible Navigation**: Easy-to-use menu system
 - **Real-time Updates**: Live conversation and notification updates
+- **Organized Data Views**: Contacts, templates, and campaign data are displayed in clear, structured tables
+- **Data Visualization**: Key statistics and metrics are presented using interactive graphs and charts for easy interpretation and decision-making
+
 
 ## 🔐 Security & Compliance
 
