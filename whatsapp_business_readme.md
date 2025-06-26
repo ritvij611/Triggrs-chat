@@ -6,11 +6,20 @@ A comprehensive WhatsApp Business solution that revolutionizes business communic
 
 ![Platform Overview](https://img.shields.io/badge/Platform-WhatsApp%20Business-25D366?style=for-the-badge&logo=whatsapp)
 ![Built with Next.js](https://img.shields.io/badge/Built%20with-Next.js-000000?style=for-the-badge&logo=next.js)
+![AWS Lambda](https://img.shields.io/badge/Backend-AWS%20Lambda-FF9900?style=for-the-badge&logo=amazon-aws)
 ![Status](https://img.shields.io/badge/Status-Active-success?style=for-the-badge)
 
 ## 🚀 Overview
 
 This platform enables businesses to manage customer communications through a unified WhatsApp Business account, supporting multi-device access, team collaboration, and comprehensive message management. Built with the official WhatsApp Business API, it provides enterprise-grade features for businesses of all sizes.
+
+## 🏗️ Architecture
+
+The platform follows a serverless architecture:
+- **Frontend**: Next.js application with API routes serving as wrapper functions
+- **Backend**: AWS Lambda functions handling core business logic
+- **API Layer**: Next.js API routes (`pages/api`) act as middleware, forwarding frontend requests to AWS Lambda functions
+- **Integration**: Official WhatsApp Business API through Meta Business App credentials
 
 ## ✨ Key Features
 
@@ -53,7 +62,9 @@ This platform enables businesses to manage customer communications through a uni
 ## 🛠️ Technology Stack
 
 - **Frontend**: Next.js with React
-- **API Integration**: Official WhatsApp Business API
+- **API Layer**: Next.js API routes (wrapper functions)
+- **Backend**: AWS Lambda functions (serverless)
+- **API Integration**: Official WhatsApp Business API via Meta Business App
 - **Real-time Updates**: WebSocket connections for instant messaging
 - **File Management**: Secure document and media handling
 - **Authentication**: Multi-tenant user management system
@@ -61,10 +72,42 @@ This platform enables businesses to manage customer communications through a uni
 ## 📋 Getting Started
 
 ### Prerequisites
+
+#### Meta Business App Requirements
+**⚠️ CRITICAL**: You need your own Meta Business App credentials to run this project. The platform requires:
+
+- **Meta Business Manager Account**: Verified business account
+- **Meta App ID**: From your Meta Business App
+- **Meta App Secret**: Secret key for your Meta Business App
+- **Meta Business Config ID**: Configuration ID for WhatsApp Business API
+- **WhatsApp Business Account**: Linked to your Meta Business App
+
+#### Development Environment
 - Node.js (v16 or higher)
 - npm, yarn, pnpm, or bun
-- WhatsApp Business API access
-- Valid business verification
+- AWS Account (for Lambda functions)
+- AWS CLI configured with appropriate permissions
+
+### Meta Business App Setup
+
+1. **Create Meta Business Manager Account**:
+   - Go to [Meta Business Manager](https://business.facebook.com)
+   - Create and verify your business account
+
+2. **Create Meta App**:
+   - Visit [Meta for Developers](https://developers.facebook.com)
+   - Create a new app and select "Business" type
+   - Add WhatsApp Business API product to your app
+
+3. **Configure WhatsApp Business API**:
+   - Set up webhook URLs for your Lambda functions
+   - Configure phone number for WhatsApp Business
+   - Get verification and approval for business use
+
+4. **Obtain Credentials**:
+   - App ID from App Dashboard
+   - App Secret from App Settings > Basic
+   - Business Config ID from WhatsApp > Configuration
 
 ### Installation
 
@@ -83,17 +126,34 @@ This platform enables businesses to manage customer communications through a uni
    pnpm install
    ```
 
-3. **Environment Setup**
-   Create a `.env.local` file with your configuration:
+3. **Frontend Environment Setup**
+   Create a `.env.local` file for Next.js frontend:
    ```env
    SESS_SECRET_TOKEN=your_auth_secret
-   NEXT_PUBLIC_FB_APP_ID=your_meta_verified_business_app_id
-   NEXT_PUBLIC_FB_APP_SECRET=your_meta_verified_business_app_secret
-   NEXT_PUBLIC_FB_CONFIG_ID=your_meta_verified_business_app_config_id
+   NEXT_PUBLIC_FB_APP_ID=your_meta_business_app_id
+   NEXT_PUBLIC_FB_APP_SECRET=your_meta_business_app_secret
+   NEXT_PUBLIC_FB_CONFIG_ID=your_meta_business_config_id
    STAGE=production_stage_of_product
+   AWS_LAMBDA_ENDPOINT=your_aws_lambda_api_gateway_url
    ```
 
-4. **Run the development server**
+4. **AWS Lambda Environment Setup**
+   Configure the following environment variables in your AWS Lambda functions:
+   ```env
+   FB_APP_ID=your_meta_business_app_id
+   FB_APP_SECRET=your_meta_business_app_secret
+   FB_CONFIG_ID=your_meta_business_config_id
+   WHATSAPP_PHONE_NUMBER_ID=your_whatsapp_phone_number_id
+   WHATSAPP_BUSINESS_ACCOUNT_ID=your_whatsapp_business_account_id
+   VERIFY_TOKEN=your_webhook_verify_token
+   ```
+
+5. **Deploy AWS Lambda Functions**
+   - Deploy your Lambda functions using AWS CLI, SAM, or Serverless Framework
+   - Ensure API Gateway is configured to route requests to appropriate Lambda functions
+   - Update the `AWS_LAMBDA_ENDPOINT` in your frontend environment
+
+6. **Run the development server**
    ```bash
    npm run dev
    # or
@@ -104,7 +164,7 @@ This platform enables businesses to manage customer communications through a uni
    bun dev
    ```
 
-5. **Access the application**
+7. **Access the application**
    Open [http://localhost:3000](http://localhost:3000) in your browser
 
 ## 🎯 Core Functionality
@@ -149,44 +209,107 @@ The platform features a clean, intuitive interface with:
 - **Organized Data Views**: Contacts, templates, and campaign data are displayed in clear, structured tables
 - **Data Visualization**: Key statistics and metrics are presented using interactive graphs and charts for easy interpretation and decision-making
 
+## 🔧 AWS Lambda Functions
+
+The backend is powered by AWS Lambda functions that handle:
+
+### Core API Functions
+- **Message Handler**: Processes sending and receiving messages
+- **Contact Manager**: Manages contact operations (CRUD)
+- **Campaign Engine**: Handles broadcast campaigns and scheduling
+- **Template Manager**: Manages message templates and approvals
+- **Analytics Processor**: Generates reports and statistics
+- **Webhook Handler**: Processes WhatsApp webhook events
+
+### API Gateway Integration
+- RESTful API endpoints routing to Lambda functions
+- Authentication and authorization middleware
+- Rate limiting and request validation
+- CORS configuration for frontend requests
+
+## 🚀 Deployment
+
+### Frontend Deployment (Vercel - Recommended)
+1. Connect your GitHub repository to Vercel
+2. Configure environment variables in Vercel dashboard
+3. Deploy with automatic CI/CD
+
+### Backend Deployment (AWS Lambda)
+1. **Using AWS SAM**:
+   ```bash
+   sam build
+   sam deploy --guided
+   ```
+
+2. **Using Serverless Framework**:
+   ```bash
+   serverless deploy
+   ```
+
+3. **Using AWS CLI**:
+   ```bash
+   aws lambda create-function --function-name your-function-name
+   ```
+
+### Environment Configuration
+Ensure all Meta Business App credentials are properly configured in:
+- AWS Lambda environment variables (for backend functions)
+- Vercel environment variables (for frontend)
+- Local `.env.local` file (for development)
+
+## 📖 API Documentation
+
+### Frontend API Routes (Wrapper Functions)
+These Next.js API routes forward requests to AWS Lambda:
+- `POST /api/messages/send` - Forwards to Lambda message handler
+- `POST /api/campaigns/broadcast` - Forwards to Lambda campaign engine
+- `GET /api/contacts` - Forwards to Lambda contact manager
+- `POST /api/templates/create` - Forwards to Lambda template manager
+- `GET /api/analytics/campaign/:id` - Forwards to Lambda analytics processor
+
+### AWS Lambda Endpoints
+Core business logic handled by Lambda functions:
+- Message processing and WhatsApp API integration
+- Contact management and database operations
+- Campaign execution and scheduling
+- Template management and Meta approval workflow
+- Real-time analytics and reporting
+
+### Webhook Integration
+AWS Lambda functions handle WhatsApp webhooks for:
+- Message delivery status updates
+- Incoming customer messages
+- Template approval notifications
+- Account status changes
+
+## ⚠️ Important Notes for Third-Party Setup
+
+### Meta Business App Credentials
+**You MUST have your own Meta Business App credentials**. This project cannot work with:
+- Shared or borrowed credentials
+- Demo or test credentials from the original developer
+- Incomplete Meta Business App setup
+
+### Required Permissions
+Your Meta Business App must have:
+- WhatsApp Business Management permission
+- WhatsApp Business Messaging permission
+- Business Manager access to WhatsApp Business Account
+- Webhook configuration permissions
+
+### Compliance Requirements
+- Business verification with Meta
+- WhatsApp Business API approval
+- Adherence to WhatsApp Business Policy
+- Valid business use case documentation
 
 ## 🔐 Security & Compliance
 
 - **WhatsApp Business Policy Compliance**: Full adherence to platform guidelines
-- **Data Encryption**: End-to-end encryption for all communications
+- **AWS Security**: Lambda functions with proper IAM roles and permissions
+- **Environment Variable Security**: Sensitive credentials stored securely in AWS and Vercel
 - **User Authentication**: Secure login and session management
 - **Audit Trails**: Complete logging of all user actions and message history
-
-## 🚀 Deployment
-
-### Vercel (Recommended)
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme):
-
-1. Connect your GitHub repository to Vercel
-2. Configure environment variables
-3. Deploy with automatic CI/CD
-
-### Alternative Deployment Options
-- **Docker**: Containerized deployment for any cloud provider
-- **AWS**: Deploy using AWS Amplify or EC2
-- **Google Cloud**: Use Google App Engine or Cloud Run
-- **Custom Server**: Traditional server deployment with PM2
-
-## 📖 API Documentation
-
-### Core Endpoints
-- `POST /api/messages/send` - Send individual messages
-- `POST /api/campaigns/broadcast` - Execute broadcast campaigns
-- `GET /api/contacts` - Retrieve contact lists
-- `POST /api/templates/create` - Create message templates
-- `GET /api/analytics/campaign/:id` - Get campaign statistics
-
-### Webhook Integration
-Configure webhooks to receive real-time updates:
-- Message delivery status
-- Customer replies
-- Template approval status
-- Account status changes
 
 ## 🤝 Contributing
 
@@ -206,6 +329,8 @@ For support and questions:
 - 🐛 Bug Reports: [GitHub Issues]
 - 💬 Community: [Discord/Slack channel]
 
+**Note**: Support does not include assistance with obtaining Meta Business App credentials. Users must set up their own Meta Business Manager account and app.
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
@@ -214,8 +339,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - WhatsApp Business API team for providing the official API
 - Next.js community for the excellent framework
+- AWS Lambda for serverless backend infrastructure
 - All contributors who help improve this platform
 
 ---
 
 **Built with ❤️ for businesses who value seamless customer communication**
+
+**⚠️ Disclaimer**: This project requires your own Meta Business App credentials and AWS account. The original developer's credentials are not included and cannot be shared.
