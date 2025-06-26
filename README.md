@@ -66,8 +66,8 @@ Before running this project, ensure you have:
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/triggersWeb/waproj.git
-cd waproj
+git clone https://github.com/ritvij611/Triggrs-chat.git
+cd Triggrs-chat
 ```
 
 2. Install dependencies:
