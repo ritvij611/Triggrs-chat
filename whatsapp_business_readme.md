@@ -90,7 +90,7 @@ This platform enables businesses to manage customer communications through a uni
    NEXT_PUBLIC_FB_APP_ID=your_meta_business_app_id
    NEXT_PUBLIC_FB_APP_SECRET=your_meta_business_app_secret
    NEXT_PUBLIC_FB_CONFIG_ID=your_meta_business_app_config_id
-   NEXT_PUBLIC_WS_ENDPOINT=your_websocket_server_endpoint
+   STAGE=production_stage_of_product
    ```
 
 4. **Run the development server**
