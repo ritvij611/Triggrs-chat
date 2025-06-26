@@ -1,4 +1,4 @@
-# WhatsApp Business Management Platform
+# TriggrsChat
 
 A comprehensive WhatsApp Business API management platform built with Next.js that enables businesses to manage customer communications, broadcast campaigns, and handle multiple WhatsApp Business accounts from a unified dashboard.
 
