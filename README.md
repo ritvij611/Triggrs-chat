@@ -66,8 +66,8 @@ Before running this project, ensure you have:
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd whatsapp-business-platform
+git clone https://github.com/triggersWeb/waproj.git
+cd waproj
 ```
 
 2. Install dependencies:
