@@ -86,10 +86,11 @@ This platform enables businesses to manage customer communications through a uni
 3. **Environment Setup**
    Create a `.env.local` file with your configuration:
    ```env
-   WHATSAPP_API_KEY=your_api_key
-   WHATSAPP_WEBHOOK_URL=your_webhook_url
-   DATABASE_URL=your_database_connection
-   NEXTAUTH_SECRET=your_auth_secret
+   SESS_SECRET_TOKEN=your_auth_secret
+   NEXT_PUBLIC_FB_APP_ID=your_meta_business_app_id
+   NEXT_PUBLIC_FB_APP_SECRET=your_meta_business_app_secret
+   NEXT_PUBLIC_FB_CONFIG_ID=your_meta_business_app_config_id
+   NEXT_PUBLIC_WS_ENDPOINT=your_websocket_server_endpoint
    ```
 
 4. **Run the development server**

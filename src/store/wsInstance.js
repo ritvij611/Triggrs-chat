@@ -1,12 +1,15 @@
 import { connect, disconnect, receiveMessage } from "./webSocketSlice";
+import { EnvironmentFactory } from "@/pages/api/endpoint";
 
 let wsInstance = null;
 let heartbeatInterval = null;
 
+const environment = EnvironmentFactory.getEnvironment(process.env.STAGE);
+
 export const wsInitiate = (dispatch, phoneID) =>{
     if(wsInstance) return wsInstance;
 
-    const socket = new WebSocket(process.env.NEXT_PUBLIC_WS_ENDPOINT+"?phoneID="+phoneID);
+    const socket = new WebSocket(environment?.config?.wa?.wsEndpoint + "?phoneID=" + phoneID);
 
     socket.onopen = () => {
         console.log("websocket connected");

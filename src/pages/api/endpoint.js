@@ -23,7 +23,8 @@ class BaseEnvironment {
     constructor() {
       super('DEV', {
         wa: {
-          apiUrl: 'https://dev-wa-api.triggrsweb.com'
+          apiUrl: 'https://dev-wa-api.triggrsweb.com',
+          wsEndpoint: 'wss://2imq5g0ifi.execute-api.ap-south-1.amazonaws.com/dev'
         },
         frontend: {
           url: 'http://localhost:3000',
@@ -37,7 +38,8 @@ class BaseEnvironment {
     constructor() {
       super('STAGE', {
         wa: {
-          apiUrl: 'https://stage-wa-api.triggrsweb.com'
+          apiUrl: 'https://stage-wa-api.triggrsweb.com',
+          wsEndpoint: 'wss://2imq5g0ifi.execute-api.ap-south-1.amazonaws.com/dev'
         },
         frontend: {
           url: 'http://localhost:3000', // Here should be a staging url but i have added staging url in frontend
@@ -52,6 +54,7 @@ class BaseEnvironment {
       super('LIVE', {
         flight: {
           apiUrl: 'https://wa-api.triggrsweb.com',
+          wsEndpoint: 'wss://2imq5g0ifi.execute-api.ap-south-1.amazonaws.com/dev'
         },
         frontend: {
           url: 'https://chat.triggrsweb.com',
